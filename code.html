@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Menu Management - QR Menu System</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Epilogue:wght@400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
+<script>
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "primary": "#2C3E50",
+              "accent": "#27AE60",
+              "background-light": "#F8F9FA",
+              "background-dark": "#1a1a1a",
+              "card-light": "#FFFFFF",
+              "card-dark": "#2C3E50",
+              "text-light": "#34495E",
+              "text-dark": "#E0E0E0",
+              "text-muted-light": "#7F8C8D",
+              "text-muted-dark": "#9E9E9E",
+              "error": "#E74C3C",
+              "disabled": "#BDC3C7"
+            },
+            fontFamily: {
+              "display": ["Epilogue", "sans-serif"]
+            },
+            borderRadius: {
+              "DEFAULT": "0.25rem",
+              "lg": "0.5rem",
+              "xl": "0.75rem",
+              "full": "9999px"
+            },
+          },
+        },
+      }
+    </script>
+<style>
+      .material-symbols-outlined {
+        font-variation-settings:
+        'FILL' 0,
+        'wght' 400,
+        'GRAD' 0,
+        'opsz' 24
+      }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-text-light dark:text-text-dark">
+<div class="flex min-h-screen w-full">
+<!-- SideNavBar -->
+<aside class="flex w-72 flex-col bg-primary p-4 text-white shadow-lg">
+<div class="flex flex-col gap-4">
+<div class="flex flex-col p-2">
+<h1 class="text-white text-lg font-bold leading-normal">QR Menu System</h1>
+<p class="text-text-muted-dark text-sm font-normal leading-normal">Admin Panel</p>
+</div>
+<!-- SearchBar -->
+<div class="px-2">
+<label class="flex flex-col w-full">
+<div class="flex w-full flex-1 items-stretch rounded-lg h-10">
+<div class="text-white/70 flex items-center justify-center pl-3 bg-white/10 rounded-l-lg">
+<span class="material-symbols-outlined" style="font-size: 20px;">search</span>
+</div>
+<input class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-r-lg text-white focus:outline-0 focus:ring-0 border-none bg-white/10 h-full placeholder:text-white/70 px-2 text-sm font-normal leading-normal" placeholder="Search categories..." value=""/>
+</div>
+</label>
+</div>
+<nav class="flex flex-grow flex-col gap-2 px-2 mt-4">
+<a class="group flex items-center justify-between gap-3 px-3 py-2 rounded-lg hover:bg-white/10" href="#">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-white/80" style="font-size: 20px;">emoji_food_beverage</span>
+<p class="text-white text-sm font-medium leading-normal">Appetizers</p>
+</div>
+<span class="material-symbols-outlined text-white/50 opacity-0 group-hover:opacity-100 transition-opacity" style="font-size: 18px;">drag_indicator</span>
+</a>
+<a class="group flex items-center justify-between gap-3 px-3 py-2 rounded-lg hover:bg-white/10" href="#">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-white/80" style="font-size: 20px;">restaurant</span>
+<p class="text-white text-sm font-medium leading-normal">Soups &amp; Salads</p>
+</div>
+<span class="material-symbols-outlined text-white/50 opacity-0 group-hover:opacity-100 transition-opacity" style="font-size: 18px;">drag_indicator</span>
+</a>
+<a class="group flex items-center justify-between gap-3 px-3 py-2 rounded-lg bg-accent/80" href="#">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-white" style="font-size: 20px;">dinner_dining</span>
+<p class="text-white text-sm font-medium leading-normal">Main Courses</p>
+</div>
+<span class="material-symbols-outlined text-white/50 opacity-0 group-hover:opacity-100 transition-opacity" style="font-size: 18px;">drag_indicator</span>
+</a>
+<a class="group flex items-center justify-between gap-3 px-3 py-2 rounded-lg hover:bg-white/10" href="#">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-white/80" style="font-size: 20px;">cake</span>
+<p class="text-white text-sm font-medium leading-normal">Desserts</p>
+</div>
+<span class="material-symbols-outlined text-white/50 opacity-0 group-hover:opacity-100 transition-opacity" style="font-size: 18px;">drag_indicator</span>
+</a>
+<a class="group flex items-center justify-between gap-3 px-3 py-2 rounded-lg hover:bg-white/10" href="#">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-white/80" style="font-size: 20px;">local_bar</span>
+<p class="text-white text-sm font-medium leading-normal">Beverages</p>
+</div>
+<span class="material-symbols-outlined text-white/50 opacity-0 group-hover:opacity-100 transition-opacity" style="font-size: 18px;">drag_indicator</span>
+</a>
+</nav>
+</div>
+<div class="mt-auto px-2 pt-4">
+<button class="flex w-full cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-4 bg-accent hover:bg-accent/90 text-white text-sm font-bold leading-normal tracking-[0.015em]">
+<span class="truncate">Create New Category</span>
+</button>
+</div>
+</aside>
+<!-- Main Content -->
+<main class="flex-1 overflow-y-auto">
+<div class="p-8">
+<!-- PageHeading -->
+<div class="flex flex-wrap justify-between gap-3">
+<p class="text-text-light dark:text-text-dark text-4xl font-black leading-tight tracking-[-0.033em]">Menu Management</p>
+</div>
+<!-- ToolBar & SectionHeader -->
+<div class="flex justify-between items-center gap-2 mt-8 border-b border-gray-200 dark:border-gray-700 pb-4">
+<h2 class="text-text-light dark:text-text-dark text-[22px] font-bold leading-tight tracking-[-0.015em]">Main Courses</h2>
+<button class="flex cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 bg-accent hover:bg-accent/90 text-white gap-2 text-sm font-bold leading-normal tracking-[0.015em] min-w-0 px-4">
+<span class="material-symbols-outlined" style="font-size: 20px;">add</span>
+<span class="truncate">Add New Item</span>
+</button>
+</div>
+<!-- Item Cards Grid -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mt-6">
+<!-- Item Card 1 -->
+<div class="flex flex-col bg-card-light dark:bg-card-dark rounded-xl shadow-md overflow-hidden transition-shadow hover:shadow-lg">
+<img class="h-40 w-full object-cover" data-alt="A delicious-looking pizza with pepperoni and basil on a wooden board." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCfVdIaGk_mQt1VEvxeWeGZ4iHbBtE1KllS36jDCPBGyBG_7N6GD3EwyIWj6UNULPtEaiW_VSkfdJC5L3IuPFhx_qV-P6jQ08ihLuWQa2_faIYikn_pERcUJDaXKE9bAh8BEQiR_I5CnT4NY6kb_x5BIrbChHp7YLqSPPGJYQqhNo-aS5sFDpdQR-DXkhzAXGkn2Mvh7NFi4aV7nt_5eM7XtLS_0UYrMjaxhbSrfJJyWUvYwqplpFUAuPnmLuGppXxSJVsig_Qop6E"/>
+<div class="p-4 flex flex-col flex-1">
+<div class="flex justify-between items-start">
+<h3 class="text-lg font-bold text-text-light dark:text-text-dark">Margherita Pizza</h3>
+<p class="text-lg font-semibold text-accent">$14.50</p>
+</div>
+<p class="text-sm text-text-muted-light dark:text-text-muted-dark mt-1 flex-1">Classic pizza with fresh mozzarella, San Marzano tomatoes, and basil.</p>
+<div class="flex justify-between items-center mt-4 pt-4 border-t border-gray-100 dark:border-white/10">
+<div class="flex items-center gap-2">
+<span class="text-sm font-medium text-text-muted-light dark:text-text-muted-dark">Available</span>
+<button class="relative inline-flex h-6 w-11 items-center rounded-full bg-accent">
+<span class="inline-block h-4 w-4 transform rounded-full bg-white transition translate-x-6"></span>
+</button>
+</div>
+<div class="flex items-center gap-2">
+<button class="text-text-muted-light dark:text-text-muted-dark hover:text-primary"><span class="material-symbols-outlined" style="font-size: 20px;">edit</span></button>
+<button class="text-text-muted-light dark:text-text-muted-dark hover:text-error"><span class="material-symbols-outlined" style="font-size: 20px;">delete</span></button>
+</div>
+</div>
+</div>
+</div>
+<!-- Item Card 2 -->
+<div class="flex flex-col bg-card-light dark:bg-card-dark rounded-xl shadow-md overflow-hidden transition-shadow hover:shadow-lg">
+<img class="h-40 w-full object-cover" data-alt="A colorful and healthy salmon salad bowl with various greens, avocado, and cherry tomatoes." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBq_ejemDUzMk1BLbuLPeZqlLX7J8N6IFKEClPm8A9o5wLkMu8OJq6ox_GGJ80h-h08xJ-j7mPGRTZxRAfzJlxkFHIqmY_B-PjohL3CQxY5Al6mS9Oxvg13LJuFWR5pMR7qo4mjuYBSuBw8Sb7w6iFzdd308z_KTl2zYd6bR22vubuEvZxKbo267Exlqodzfny39INxCyaofWjcg2bq5hsnUW1sPtflLZWGt1IkxmbVQody3XhtqoDxbEkK3ao4u_Ff3FgNjugzUvU"/>
+<div class="p-4 flex flex-col flex-1">
+<div class="flex justify-between items-start">
+<h3 class="text-lg font-bold text-text-light dark:text-text-dark">Grilled Salmon Salad</h3>
+<p class="text-lg font-semibold text-accent">$18.00</p>
+</div>
+<p class="text-sm text-text-muted-light dark:text-text-muted-dark mt-1 flex-1">Freshly grilled salmon over a bed of mixed greens, with a lemon vinaigrette.</p>
+<div class="flex justify-between items-center mt-4 pt-4 border-t border-gray-100 dark:border-white/10">
+<div class="flex items-center gap-2">
+<span class="text-sm font-medium text-text-muted-light dark:text-text-muted-dark">Available</span>
+<button class="relative inline-flex h-6 w-11 items-center rounded-full bg-accent">
+<span class="inline-block h-4 w-4 transform rounded-full bg-white transition translate-x-6"></span>
+</button>
+</div>
+<div class="flex items-center gap-2">
+<button class="text-text-muted-light dark:text-text-muted-dark hover:text-primary"><span class="material-symbols-outlined" style="font-size: 20px;">edit</span></button>
+<button class="text-text-muted-light dark:text-text-muted-dark hover:text-error"><span class="material-symbols-outlined" style="font-size: 20px;">delete</span></button>
+</div>
+</div>
+</div>
+</div>
+<!-- Item Card 3 (Unavailable) -->
+<div class="flex flex-col bg-card-light dark:bg-card-dark rounded-xl shadow-md overflow-hidden transition-shadow hover:shadow-lg opacity-60">
+<img class="h-40 w-full object-cover" data-alt="A top-down view of a classic pepperoni pizza on a dark surface." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDFJGUa3UCBcrTn613GhUTtZdy1u15oG4SSbxiiYbus6OMYZbzyblHms49K_3GvoYskmB7Z3mMs4WBT1qg6jWTUTU478mfhXmOl1gdZ8CQf3YtXT_VmOb4wAUwMoX4YorOdZN2o11MWaMcaH7Dl7O3PqdDVmpewxb5iewZB-hjEAjgV8n56ijTkwLkUriQzEoSYb489Y4-vOViustPz0QOcosfBd8At_BNK5K9ciMXy9wA9fHbI4c53ISWYPH7yZwmVrFV02GHmXak"/>
+<div class="p-4 flex flex-col flex-1">
+<div class="flex justify-between items-start">
+<h3 class="text-lg font-bold text-text-light dark:text-text-dark">Spaghetti Bolognese</h3>
+<p class="text-lg font-semibold text-accent">$16.25</p>
+</div>
+<p class="text-sm text-text-muted-light dark:text-text-muted-dark mt-1 flex-1">Hearty meat sauce over perfectly cooked spaghetti, topped with parmesan.</p>
+<div class="flex justify-between items-center mt-4 pt-4 border-t border-gray-100 dark:border-white/10">
+<div class="flex items-center gap-2">
+<span class="text-sm font-medium text-text-muted-light dark:text-text-muted-dark">Unavailable</span>
+<button class="relative inline-flex h-6 w-11 items-center rounded-full bg-disabled">
+<span class="inline-block h-4 w-4 transform rounded-full bg-white transition translate-x-1"></span>
+</button>
+</div>
+<div class="flex items-center gap-2">
+<button class="text-text-muted-light dark:text-text-muted-dark hover:text-primary"><span class="material-symbols-outlined" style="font-size: 20px;">edit</span></button>
+<button class="text-text-muted-light dark:text-text-muted-dark hover:text-error"><span class="material-symbols-outlined" style="font-size: 20px;">delete</span></button>
+</div>
+</div>
+</div>
+</div>
+<!-- Empty State Card -->
+<div class="flex flex-col items-center justify-center border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl p-4 min-h-[300px] text-center">
+<span class="material-symbols-outlined text-gray-400 dark:text-gray-500 text-5xl">add_circle</span>
+<p class="text-lg font-semibold text-text-muted-light dark:text-text-muted-dark mt-4">Add a new item</p>
+<p class="text-sm text-text-muted-light dark:text-text-muted-dark">Click the button above to get started.</p>
+</div>
+</div>
+</div>
+</main>
+</div>
+</body></html>

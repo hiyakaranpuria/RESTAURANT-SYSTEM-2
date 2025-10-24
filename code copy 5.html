@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Restaurant Menu System Login</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Epilogue:wght@400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#2C5F2D",
+                        "accent": "#97BC62",
+                        "error": "#D9534F",
+                        "background-light": "#F7F7F7",
+                        "background-dark": "#121212",
+                        "card-light": "#FFFFFF",
+                        "card-dark": "#1E1E1E",
+                        "text-light": "#333333",
+                        "text-dark": "#F0F0F0",
+                        "subtext-light": "#6B7280",
+                        "subtext-dark": "#9CA3AF",
+                        "border-light": "#E0E0E0",
+                        "border-dark": "#4A4A4A",
+                    },
+                    fontFamily: {
+                        "display": ["Epilogue", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.5rem",
+                        "lg": "0.75rem",
+                        "xl": "1rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings:
+            'FILL' 0,
+            'wght' 400,
+            'GRAD' 0,
+            'opsz' 24
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-text-light dark:text-text-dark">
+<div class="relative flex h-auto min-h-screen w-full flex-col items-center justify-center group/design-root overflow-x-hidden p-4">
+<div class="layout-container flex h-full grow flex-col w-full max-w-md">
+<div class="flex flex-col items-center justify-center py-10">
+<div class="layout-content-container flex flex-col w-full bg-card-light dark:bg-card-dark p-8 sm:p-10 rounded-xl shadow-lg">
+<!-- Logo and System Name -->
+<div class="flex flex-col items-center justify-center mb-6">
+<div class="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 text-primary">
+<span class="material-symbols-outlined !text-4xl">
+                                restaurant_menu
+                            </span>
+</div>
+</div>
+<!-- Page Heading -->
+<div class="flex flex-wrap justify-center gap-3 text-center">
+<div class="flex flex-col gap-1">
+<p class="text-text-light dark:text-text-dark text-3xl font-black leading-tight tracking-[-0.033em]">Welcome Back</p>
+<p class="text-subtext-light dark:text-subtext-dark text-base font-normal leading-normal">Sign in to your account</p>
+</div>
+</div>
+<!-- Login Form -->
+<form class="flex flex-col gap-6 mt-8">
+<!-- Email Field -->
+<div class="flex flex-col gap-2">
+<label class="text-text-light dark:text-text-dark text-sm font-medium leading-normal" for="email">Email</label>
+<input class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-text-light dark:text-text-dark focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-border-light dark:border-border-dark bg-card-light dark:bg-card-dark focus:border-primary dark:focus:border-primary h-12 placeholder:text-subtext-light dark:placeholder:text-subtext-dark p-[15px] text-base font-normal leading-normal" id="email" placeholder="e.g., yourname@restaurant.com" type="email" value=""/>
+</div>
+<!-- Password Field -->
+<div class="flex flex-col gap-2">
+<label class="text-text-light dark:text-text-dark text-sm font-medium leading-normal" for="password">Password</label>
+<div class="relative flex w-full flex-1 items-stretch">
+<input class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-text-light dark:text-text-dark focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-border-light dark:border-border-dark bg-card-light dark:bg-card-dark focus:border-primary dark:focus:border-primary h-12 placeholder:text-subtext-light dark:placeholder:text-subtext-dark p-[15px] pr-10 text-base font-normal leading-normal" id="password" placeholder="Enter your password" type="password" value=""/>
+<div class="absolute inset-y-0 right-0 flex items-center pr-3 text-subtext-light dark:text-subtext-dark cursor-pointer">
+<span class="material-symbols-outlined !text-xl">
+                                      visibility
+                                    </span>
+</div>
+</div>
+</div>
+<!-- Error Message Area -->
+<p class="text-error text-sm font-normal leading-normal text-center hidden">Invalid credentials. Please try again.</p>
+<!-- Forgot Password Link -->
+<div class="text-right">
+<a class="text-accent text-sm font-medium leading-normal underline-offset-4 hover:underline" href="#">Forgot your password?</a>
+</div>
+<!-- Login Button -->
+<button class="flex w-full items-center justify-center rounded-lg bg-primary h-12 px-6 text-base font-semibold text-white transition hover:bg-primary/90 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background-light dark:focus-visible:ring-offset-background-dark" type="submit">Login</button>
+</form>
+</div>
+</div>
+</div>
+</div>
+</body></html>

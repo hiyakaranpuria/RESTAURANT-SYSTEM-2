@@ -22,7 +22,7 @@ const RestaurantLoginPage = () => {
       });
 
       // Store token
-      localStorage.setItem("restaurantToken", data.token);
+      localStorage.setItem("token", data.token);
       axios.defaults.headers.common["Authorization"] = `Bearer ${data.token}`;
 
       // Redirect based on verification status

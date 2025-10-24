@@ -31,16 +31,21 @@ const storage = multer.diskStorage({
 
 const fileFilter = (req, file, cb) => {
   // Accept images and PDFs only
-  const allowedTypes = /jpeg|jpg|png|pdf/;
-  const extname = allowedTypes.test(
-    path.extname(file.originalname).toLowerCase()
-  );
-  const mimetype = allowedTypes.test(file.mimetype);
+  const allowedMimeTypes = [
+    "image/jpeg",
+    "image/jpg",
+    "image/png",
+    "image/gif",
+    "image/webp",
+    "application/pdf",
+  ];
 
-  if (mimetype && extname) {
+  if (allowedMimeTypes.includes(file.mimetype)) {
     return cb(null, true);
   } else {
-    cb(new Error("Only images (JPEG, PNG) and PDF files are allowed!"));
+    cb(
+      new Error("Only images (JPEG, PNG, GIF, WebP) and PDF files are allowed!")
+    );
   }
 };
 
@@ -89,6 +94,24 @@ router.post("/multiple", upload.array("documents", 5), (req, res) => {
     res.json({
       message: "Files uploaded successfully",
       files: fileUrls,
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Upload menu item image
+router.post("/menu-image", upload.single("image"), (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: "No image uploaded" });
+    }
+
+    const imageUrl = `/uploads/${req.file.filename}`;
+    res.json({
+      message: "Image uploaded successfully",
+      imageUrl: imageUrl,
+      filename: req.file.filename,
     });
   } catch (error) {
     res.status(500).json({ message: error.message });

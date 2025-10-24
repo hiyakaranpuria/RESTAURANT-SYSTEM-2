@@ -22,6 +22,7 @@ import RestaurantSignupPage from "./pages/restaurant/RestaurantSignupPage";
 import RestaurantLoginPage from "./pages/restaurant/RestaurantLoginPage";
 import RestaurantSuccessPage from "./pages/restaurant/RestaurantSuccessPage";
 import RestaurantPendingPage from "./pages/restaurant/RestaurantPendingPage";
+import RestaurantDashboard from "./pages/restaurant/RestaurantDashboard";
 
 // Staff Pages
 import OrderQueuePage from "./pages/staff/OrderQueuePage";
@@ -64,7 +65,7 @@ function App() {
             />
             <Route
               path="/restaurant/dashboard"
-              element={<MenuManagementPage />}
+              element={<RestaurantDashboard />}
             />
 
             {/* Staff Routes */}

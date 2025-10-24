@@ -3,6 +3,11 @@ import mongoose from "mongoose";
 const menuCategorySchema = new mongoose.Schema(
   {
     name: { type: String, required: true },
+    restaurantId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Restaurant",
+      required: true,
+    },
     displayOrder: { type: Number, default: 0 },
     active: { type: Boolean, default: true },
   },

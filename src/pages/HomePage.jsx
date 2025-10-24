@@ -1,8 +1,32 @@
 import { Link } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 
 const HomePage = () => {
+  const { user, logout } = useAuth();
+
+  const handleLogout = () => {
+    logout();
+    window.location.reload();
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 to-red-50">
+      {user && (
+        <div className="bg-white border-b shadow-sm">
+          <div className="container mx-auto px-4 py-3 flex justify-between items-center">
+            <p className="text-sm text-gray-600">
+              Logged in as: <span className="font-semibold">{user.email}</span>{" "}
+              ({user.role})
+            </p>
+            <button
+              onClick={handleLogout}
+              className="px-4 py-2 text-sm font-medium text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
+            >
+              Logout
+            </button>
+          </div>
+        </div>
+      )}
       <div className="container mx-auto px-4 py-16">
         <div className="max-w-4xl mx-auto text-center">
           <div className="flex justify-center mb-8">

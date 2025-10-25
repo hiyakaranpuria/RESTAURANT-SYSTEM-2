@@ -4,6 +4,7 @@ import dotenv from "dotenv";
 import mongoose from "mongoose";
 import path from "path";
 import { fileURLToPath } from "url";
+import helmet from "helmet";
 import authRoutes from "./routes/auth.js";
 import menuRoutes from "./routes/menu.js";
 import tableRoutes from "./routes/tables.js";
@@ -11,6 +12,8 @@ import orderRoutes from "./routes/orders.js";
 import restaurantRoutes from "./routes/restaurant.js";
 import uploadRoutes from "./routes/upload.js";
 import seedRoutes from "./routes/seed.js";
+import { apiLimiter } from "./middleware/rateLimiter.js";
+import { sanitizeInput } from "./middleware/validation.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -19,8 +22,32 @@ dotenv.config();
 
 const app = express();
 
-app.use(cors());
-app.use(express.json());
+// Security middleware
+app.use(
+  helmet({
+    crossOriginResourcePolicy: { policy: "cross-origin" },
+  })
+);
+
+// CORS configuration
+app.use(
+  cors({
+    origin: process.env.CLIENT_URL || "http://localhost:5173",
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  })
+);
+
+// Body parsing with size limits
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ extended: true, limit: "10mb" }));
+
+// Global rate limiting
+app.use("/api/", apiLimiter);
+
+// Global input sanitization
+app.use(sanitizeInput);
 
 // Serve uploaded files
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
@@ -32,6 +59,7 @@ mongoose
   .then(() => console.log("MongoDB connected"))
   .catch((err) => console.error("MongoDB connection error:", err));
 
+// API routes
 app.use("/api/auth", authRoutes);
 app.use("/api/menu", menuRoutes);
 app.use("/api/tables", tableRoutes);
@@ -40,8 +68,40 @@ app.use("/api/restaurant", restaurantRoutes);
 app.use("/api/upload", uploadRoutes);
 app.use("/api/seed", seedRoutes);
 
+// Health check endpoint
+app.get("/health", (req, res) => {
+  res.json({
+    status: "ok",
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+  });
+});
+
+// 404 handler
+app.use((req, res) => {
+  res.status(404).json({
+    message: "Endpoint not found",
+    code: "NOT_FOUND",
+  });
+});
+
+// Global error handler
+app.use((err, req, res, next) => {
+  console.error("Error:", err);
+
+  // Don't leak error details in production
+  const isDevelopment = process.env.NODE_ENV === "development";
+
+  res.status(err.status || 500).json({
+    message: err.message || "Internal server error",
+    code: err.code || "INTERNAL_ERROR",
+    ...(isDevelopment && { stack: err.stack }),
+  });
+});
+
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
+  console.log(`Environment: ${process.env.NODE_ENV || "development"}`);
 });

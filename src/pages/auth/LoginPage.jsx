@@ -1,23 +1,33 @@
 import { useState, useEffect } from "react";
-import { useNavigate, Link } from "react-router-dom";
-import { useAuth } from "../../context/AuthContext";
+import { useNavigate, Link, useLocation } from "react-router-dom";
+import { useAuth } from "../../context/MultiAuthContext";
+import { LoginPageGuard } from "../../components/AuthGuard";
 
-const LoginPage = () => {
+const LoginPageContent = () => {
   const navigate = useNavigate();
-  const { login, user } = useAuth();
+  const location = useLocation();
+  const { login, isCustomerAuthenticated, getCustomerSession } = useAuth();
 
-  // Redirect if already logged in
+  // Redirect if already logged in as customer
   useEffect(() => {
-    if (user) {
-      if (user.role === "admin") {
-        navigate("/admin/restaurants");
-      } else if (user.role === "staff") {
-        navigate("/staff/orders");
+    if (isCustomerAuthenticated) {
+      const customerSession = getCustomerSession();
+      const user = customerSession.user;
+
+      // Check if there's a redirect path from protected route
+      const from = location.state?.from || null;
+
+      if (from && from !== "/login") {
+        navigate(from, { replace: true });
+      } else if (user?.role === "admin") {
+        navigate("/admin/restaurants", { replace: true });
+      } else if (user?.role === "staff") {
+        navigate("/staff/orders", { replace: true });
       } else {
-        navigate("/dashboard");
+        navigate("/dashboard", { replace: true });
       }
     }
-  }, [user, navigate]);
+  }, [isCustomerAuthenticated, navigate, location, getCustomerSession]);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -30,7 +40,7 @@ const LoginPage = () => {
     setLoading(true);
 
     try {
-      const data = await login(email, password);
+      const data = await login(email, password, "customer");
       // Navigation will be handled by useEffect after user state updates
     } catch (err) {
       setError(err.response?.data?.message || "Invalid credentials");
@@ -147,6 +157,14 @@ const LoginPage = () => {
         </div>
       </div>
     </div>
+  );
+};
+
+const LoginPage = () => {
+  return (
+    <LoginPageGuard>
+      <LoginPageContent />
+    </LoginPageGuard>
   );
 };
 

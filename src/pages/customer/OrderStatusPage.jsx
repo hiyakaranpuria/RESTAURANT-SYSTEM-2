@@ -1,13 +1,16 @@
 import { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 
 const OrderStatusPage = () => {
   const { orderId } = useParams();
+  const navigate = useNavigate();
   const [order, setOrder] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchOrder();
+    // Auto-refresh every 5 seconds
     const interval = setInterval(fetchOrder, 5000);
     return () => clearInterval(interval);
   }, [orderId]);
@@ -18,6 +21,8 @@ const OrderStatusPage = () => {
       setOrder(data);
     } catch (error) {
       console.error("Error fetching order:", error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -25,7 +30,7 @@ const OrderStatusPage = () => {
     { key: "placed", label: "Order Placed", icon: "receipt_long" },
     { key: "preparing", label: "In the Kitchen", icon: "soup_kitchen" },
     { key: "ready", label: "Ready for Pickup", icon: "local_mall" },
-    { key: "served", label: "Completed", icon: "check_circle" },
+    { key: "delivered", label: "Completed", icon: "check_circle" },
   ];
 
   const currentStepIndex = statusSteps.findIndex(
@@ -33,138 +38,276 @@ const OrderStatusPage = () => {
   );
   const progress = ((currentStepIndex + 1) / statusSteps.length) * 100;
 
-  if (!order)
+  const getEstimatedTime = () => {
+    if (!order || !order.estimatedReadyTime) return null;
+
+    const readyTime = new Date(order.estimatedReadyTime);
+    const now = new Date();
+    const diffMinutes = Math.max(0, Math.round((readyTime - now) / 60000));
+
+    return diffMinutes;
+  };
+
+  const getReadyByTime = () => {
+    if (!order || !order.estimatedReadyTime) return null;
+
+    return new Date(order.estimatedReadyTime).toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+
+  if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        Loading...
+        <div className="text-center">
+          <div className="spinner mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading order...</p>
+        </div>
       </div>
     );
+  }
+
+  if (!order) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <p className="text-xl text-gray-600">Order not found</p>
+          <button
+            onClick={() => navigate("/")}
+            className="mt-4 px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+          >
+            Go Home
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  const estimatedMinutes = getEstimatedTime();
+  const readyByTime = getReadyByTime();
 
   return (
-    <div className="min-h-screen bg-background-light">
-      <header className="px-4 py-3 mb-6">
-        <div className="flex items-center justify-between">
+    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-red-50">
+      <header className="bg-white border-b shadow-sm px-4 py-4">
+        <div className="container mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="h-8 w-8 text-primary">
+            <button
+              onClick={() => navigate(`/m/${order.restaurantId._id}`)}
+              className="text-gray-600 hover:text-gray-900"
+            >
               <svg
+                className="w-6 h-6"
                 fill="none"
-                viewBox="0 0 48 48"
-                xmlns="http://www.w3.org/2000/svg"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
               >
                 <path
-                  d="M13.8261 17.4264C16.7203 18.1174 20.2244 18.5217 24 18.5217C27.7756 18.5217 31.2797 18.1174 34.1739 17.4264C36.9144 16.7722 39.9967 15.2331 41.3563 14.1648L24.8486 40.6391C24.4571 41.267 23.5429 41.267 23.1514 40.6391L6.64374 14.1648C8.00331 15.2331 11.0856 16.7722 13.8261 17.4264Z"
-                  fill="currentColor"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M15 19l-7-7 7-7"
                 />
               </svg>
+            </button>
+            <div>
+              <h2 className="text-xl font-bold">
+                {order.restaurantId?.restaurantName}
+              </h2>
+              <p className="text-sm text-gray-600">Table {order.tableNumber}</p>
             </div>
-            <h2 className="text-xl font-bold">The Gourmet Spot</h2>
           </div>
-          <button className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-200">
-            <span className="material-symbols-outlined">account_circle</span>
-          </button>
         </div>
       </header>
 
-      <main className="max-w-2xl mx-auto px-4">
-        <div className="text-center my-6">
-          <h1 className="text-4xl md:text-5xl font-black">Track Your Order</h1>
+      <main className="container mx-auto px-4 py-8 max-w-3xl">
+        <div className="text-center mb-8 animate-fadeIn">
+          <h1 className="text-4xl font-black mb-2">Track Your Order</h1>
+          <p className="text-gray-600">
+            Order #{order._id.slice(-6).toUpperCase()}
+          </p>
         </div>
-        <h2 className="text-center text-xl font-bold text-gray-600 mb-10">
-          Order #{order._id.slice(-6)} for Table{" "}
-          {order.tableId?.number || "N/A"}
-        </h2>
 
-        <div className="flex items-center w-full px-4 mb-12">
-          {statusSteps.map((step, idx) => (
-            <div key={step.key} className="flex items-center flex-1">
-              <div className="flex flex-col items-center text-center relative flex-1">
-                <div
-                  className={`flex items-center justify-center w-10 h-10 rounded-full z-10 ${
-                    idx <= currentStepIndex
-                      ? "bg-primary text-white"
-                      : "bg-gray-300 text-gray-500"
-                  }`}
-                >
-                  <span className="material-symbols-outlined">{step.icon}</span>
+        {/* Status Progress */}
+        <div className="bg-white rounded-xl shadow-lg p-6 mb-6 animate-fadeIn">
+          <div className="flex items-center justify-between mb-8">
+            {statusSteps.map((step, idx) => (
+              <div key={step.key} className="flex flex-col items-center flex-1">
+                <div className="relative">
+                  <div
+                    className={`flex items-center justify-center w-12 h-12 rounded-full transition-all duration-300 ${
+                      idx <= currentStepIndex
+                        ? "bg-green-600 text-white scale-110"
+                        : "bg-gray-300 text-gray-500"
+                    }`}
+                  >
+                    <span className="material-symbols-outlined">
+                      {step.icon}
+                    </span>
+                  </div>
+                  {idx <= currentStepIndex && (
+                    <div className="absolute inset-0 bg-green-600 rounded-full animate-ping opacity-20"></div>
+                  )}
                 </div>
                 <p
-                  className={`mt-2 text-sm font-semibold ${
-                    idx <= currentStepIndex ? "text-primary" : "text-gray-500"
+                  className={`mt-2 text-xs sm:text-sm font-semibold text-center ${
+                    idx <= currentStepIndex ? "text-green-600" : "text-gray-500"
                   }`}
                 >
                   {step.label}
                 </p>
+                {idx < statusSteps.length - 1 && (
+                  <div className="hidden sm:block absolute top-6 left-1/2 w-full h-1 -z-10">
+                    <div
+                      className={`h-full transition-all duration-500 ${
+                        idx < currentStepIndex ? "bg-green-600" : "bg-gray-300"
+                      }`}
+                    />
+                  </div>
+                )}
               </div>
-              {idx < statusSteps.length - 1 && (
-                <div
-                  className={`flex-1 h-1 ${
-                    idx < currentStepIndex ? "bg-primary" : "bg-gray-300"
-                  }`}
-                />
-              )}
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
 
-        <div className="p-6 rounded-xl bg-white shadow-lg border mb-6">
-          <div className="flex flex-col gap-3">
-            <p className="text-2xl font-bold">
-              {statusSteps[currentStepIndex]?.label}
-            </p>
-            <p className="text-gray-600">
-              {order.status === "preparing" && "Your food is being prepared"}
-              {order.status === "ready" && "Your order is ready for pickup"}
-              {order.status === "served" && "Enjoy your meal!"}
-              {order.status === "placed" && "Your order has been received"}
-            </p>
-            <div className="w-full rounded-full bg-primary/20 mt-2">
-              <div
-                className="h-2.5 rounded-full bg-primary"
-                style={{ width: `${progress}%` }}
-              />
-            </div>
-            {order.status === "preparing" && (
-              <div className="flex items-center gap-2 mt-4 text-primary font-medium">
-                <span className="material-symbols-outlined text-xl">timer</span>
-                <span>Ready in approximately 8 minutes</span>
-              </div>
-            )}
+          <div className="w-full rounded-full bg-gray-200 h-3 overflow-hidden">
+            <div
+              className="h-full bg-gradient-to-r from-green-500 to-green-600 transition-all duration-500 ease-out"
+              style={{ width: `${progress}%` }}
+            />
           </div>
         </div>
 
-        <div className="rounded-xl bg-white shadow-lg border mb-6">
-          <details>
-            <summary className="flex items-center justify-between p-4 cursor-pointer list-none">
-              <span className="font-bold text-lg">View Order Details</span>
-              <span className="material-symbols-outlined">expand_more</span>
-            </summary>
-            <div className="p-4 border-t">
-              <ul className="space-y-3 text-gray-700">
-                {order.items.map((item, idx) => (
-                  <li key={idx} className="flex justify-between">
-                    <span>
-                      {item.qty}x {item.menuItemId?.name || "Item"}
-                    </span>
-                    <span>
-                      ${(item.qty * (item.menuItemId?.price || 0)).toFixed(2)}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-              <div className="border-t my-4" />
-              <div className="flex justify-between font-bold">
-                <span>Total</span>
-                <span>${order.total?.toFixed(2)}</span>
-              </div>
+        {/* Status Message */}
+        <div
+          className="bg-white rounded-xl shadow-lg p-6 mb-6 animate-fadeIn"
+          style={{ animationDelay: "0.1s" }}
+        >
+          <div className="flex items-start gap-4">
+            <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
+              <span className="material-symbols-outlined text-green-600">
+                {statusSteps[currentStepIndex]?.icon}
+              </span>
             </div>
-          </details>
+            <div className="flex-1">
+              <h3 className="text-xl font-bold mb-2">
+                {statusSteps[currentStepIndex]?.label}
+              </h3>
+              <p className="text-gray-600 mb-3">
+                {order.status === "placed" &&
+                  "Your order has been received and will be prepared shortly."}
+                {order.status === "preparing" &&
+                  "Our kitchen is preparing your delicious meal!"}
+                {order.status === "ready" &&
+                  "Your order is ready! Please come to the counter to collect it."}
+                {order.status === "delivered" &&
+                  "Thank you for your order! Enjoy your meal!"}
+              </p>
+
+              {order.status === "preparing" && order.estimatedWaitTime && (
+                <div className="bg-green-50 border-2 border-green-200 rounded-lg p-4 mt-4">
+                  <div className="flex items-center gap-3">
+                    <span className="material-symbols-outlined text-green-600 text-4xl animate-pulse">
+                      timer
+                    </span>
+                    <div>
+                      <p className="text-sm text-gray-600 mb-1">
+                        Estimated wait time
+                      </p>
+                      <p className="text-3xl font-bold text-green-600">
+                        {order.estimatedWaitTime} minute
+                        {order.estimatedWaitTime !== 1 ? "s" : ""}
+                      </p>
+                      {readyByTime && (
+                        <p className="text-sm text-gray-600 mt-1">
+                          Ready by:{" "}
+                          <span className="font-semibold text-green-700">
+                            {readyByTime}
+                          </span>
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {order.status === "ready" && (
+                <div className="bg-green-50 border-2 border-green-500 rounded-lg p-4 animate-pulse">
+                  <p className="text-green-800 font-bold text-lg">
+                    🎉 Your order is ready for pickup!
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
 
-        <div className="mt-auto pt-6 text-center">
-          <button className="inline-flex items-center justify-center gap-2 w-full sm:w-auto px-6 py-3 rounded-lg bg-primary/20 text-primary font-bold hover:bg-primary/30">
-            <span className="material-symbols-outlined">support_agent</span>
-            <span>Call Waiter</span>
-          </button>
+        {/* Order Details */}
+        <div
+          className="bg-white rounded-xl shadow-lg mb-6 animate-fadeIn"
+          style={{ animationDelay: "0.2s" }}
+        >
+          <div className="p-6 border-b">
+            <h3 className="text-lg font-bold">Order Details</h3>
+          </div>
+          <div className="p-6">
+            <div className="space-y-3 mb-4">
+              {order.items.map((item, idx) => (
+                <div key={idx} className="flex justify-between items-start">
+                  <div className="flex-1">
+                    <p className="font-semibold">{item.name}</p>
+                    <p className="text-sm text-gray-600">
+                      ₹{item.price.toFixed(2)} × {item.quantity}
+                    </p>
+                  </div>
+                  <p className="font-bold text-green-600">
+                    ₹{(item.price * item.quantity).toFixed(2)}
+                  </p>
+                </div>
+              ))}
+            </div>
+
+            {order.specialInstructions && (
+              <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                <p className="text-xs font-semibold text-yellow-800 mb-1">
+                  Special Instructions:
+                </p>
+                <p className="text-sm text-yellow-900">
+                  {order.specialInstructions}
+                </p>
+              </div>
+            )}
+
+            <div className="border-t pt-4 space-y-2">
+              <div className="flex justify-between text-lg font-bold">
+                <span>Total</span>
+                <span className="text-green-600">
+                  ₹{order.totalAmount.toFixed(2)}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Order Info */}
+        <div
+          className="bg-white rounded-xl shadow-lg p-6 animate-fadeIn"
+          style={{ animationDelay: "0.3s" }}
+        >
+          <div className="grid grid-cols-2 gap-4 text-sm">
+            <div>
+              <p className="text-gray-600">Order Time</p>
+              <p className="font-semibold">
+                {new Date(order.createdAt).toLocaleTimeString([], {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
+              </p>
+            </div>
+            <div>
+              <p className="text-gray-600">Table Number</p>
+              <p className="font-semibold">{order.tableNumber}</p>
+            </div>
+          </div>
         </div>
       </main>
     </div>

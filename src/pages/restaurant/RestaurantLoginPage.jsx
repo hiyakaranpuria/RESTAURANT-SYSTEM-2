@@ -1,9 +1,11 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import axios from "axios";
+import { useAuth } from "../../context/MultiAuthContext";
+import { LoginPageGuard } from "../../components/AuthGuard";
 
-const RestaurantLoginPage = () => {
+const RestaurantLoginPageContent = () => {
   const navigate = useNavigate();
+  const { login } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -16,14 +18,10 @@ const RestaurantLoginPage = () => {
     setLoading(true);
 
     try {
-      const { data } = await axios.post("/api/restaurant/login", {
-        email,
-        password,
-      });
+      const data = await login(email, password, "restaurant");
 
-      // Store token
-      localStorage.setItem("token", data.token);
-      axios.defaults.headers.common["Authorization"] = `Bearer ${data.token}`;
+      // Store restaurant ID for later use
+      localStorage.setItem("restaurantId", data.restaurant._id);
 
       // Redirect based on verification status
       if (data.restaurant.verificationStatus === "pending") {
@@ -134,6 +132,14 @@ const RestaurantLoginPage = () => {
         </div>
       </div>
     </div>
+  );
+};
+
+const RestaurantLoginPage = () => {
+  return (
+    <LoginPageGuard>
+      <RestaurantLoginPageContent />
+    </LoginPageGuard>
   );
 };
 

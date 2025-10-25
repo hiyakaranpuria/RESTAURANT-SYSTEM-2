@@ -1,12 +1,22 @@
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "../../context/AuthContext";
+import { useEffect } from "react";
+import { useAuth } from "../../context/MultiAuthContext";
 
 const CustomerDashboard = () => {
   const navigate = useNavigate();
-  const { user, logout } = useAuth();
+  const { isCustomerAuthenticated, getCustomerSession, logout } = useAuth();
+
+  const user = getCustomerSession().user;
+
+  // Redirect if not authenticated as customer
+  useEffect(() => {
+    if (!isCustomerAuthenticated) {
+      navigate("/login");
+    }
+  }, [isCustomerAuthenticated, navigate]);
 
   const handleLogout = () => {
-    logout();
+    logout("customer");
     navigate("/");
   };
 

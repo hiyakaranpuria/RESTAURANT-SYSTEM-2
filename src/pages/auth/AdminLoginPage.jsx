@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "../../context/AuthContext";
+import { useAuth } from "../../context/MultiAuthContext";
+import { LoginPageGuard } from "../../components/AuthGuard";
 
-export default function AdminLoginPage() {
+function AdminLoginPageContent() {
   const [credentials, setCredentials] = useState({
     email: "",
     password: "",
@@ -18,8 +19,8 @@ export default function AdminLoginPage() {
     setLoading(true);
 
     try {
-      // Use the real login API
-      await login(credentials.email, credentials.password);
+      // Use the real login API with admin type
+      await login(credentials.email, credentials.password, "admin");
       navigate("/admin/restaurants");
     } catch (err) {
       setError(err.response?.data?.message || "Invalid admin credentials");
@@ -107,5 +108,13 @@ export default function AdminLoginPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function AdminLoginPage() {
+  return (
+    <LoginPageGuard>
+      <AdminLoginPageContent />
+    </LoginPageGuard>
   );
 }

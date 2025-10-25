@@ -1,9 +1,25 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import { QRCodeSVG } from "qrcode.react";
+import ItemCustomizationManager from "../../components/ItemCustomizationManager";
+import { useSessionManagement } from "../../hooks/useSessionManagement";
+import { useAuth } from "../../context/MultiAuthContext";
 
 const RestaurantDashboard = () => {
   const navigate = useNavigate();
+  const { isRestaurantAuthenticated, getRestaurantSession, getToken } =
+    useAuth();
+
+  // Use session management hook
+  useSessionManagement();
+
+  // Check restaurant authentication
+  useEffect(() => {
+    if (!isRestaurantAuthenticated) {
+      navigate("/restaurant/login");
+    }
+  }, [isRestaurantAuthenticated, navigate]);
   const [categories, setCategories] = useState([]);
   const [items, setItems] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState("all");
@@ -11,9 +27,12 @@ const RestaurantDashboard = () => {
   const [showEditItemModal, setShowEditItemModal] = useState(false);
   const [showAddCategoryModal, setShowAddCategoryModal] = useState(false);
   const [showEditCategoryModal, setShowEditCategoryModal] = useState(false);
+  const [showQRModal, setShowQRModal] = useState(false);
   const [loading, setLoading] = useState(true);
   const [editingItem, setEditingItem] = useState(null);
   const [editingCategory, setEditingCategory] = useState(null);
+  const [restaurantInfo, setRestaurantInfo] = useState(null);
+  const [newOrdersCount, setNewOrdersCount] = useState(0);
 
   const [itemFormData, setItemFormData] = useState({
     name: "",
@@ -22,6 +41,8 @@ const RestaurantDashboard = () => {
     categoryId: "",
     imageFile: null,
     availability: true,
+    isVeg: true,
+    enableCustomization: false,
   });
 
   const [categoryFormData, setCategoryFormData] = useState({
@@ -32,26 +53,45 @@ const RestaurantDashboard = () => {
   const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
-    // Set axios authorization header from localStorage
-    const token = localStorage.getItem("token");
+    // Set axios authorization header from restaurant token
+    const token = getToken("restaurant");
     if (token) {
       axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
     }
-    fetchData();
-  }, []);
+
+    if (isRestaurantAuthenticated) {
+      fetchData();
+      fetchNewOrdersCount();
+
+      // Check for new orders every 10 seconds
+      const interval = setInterval(fetchNewOrdersCount, 10000);
+      return () => clearInterval(interval);
+    }
+  }, [isRestaurantAuthenticated]);
 
   const fetchData = async () => {
     try {
-      const [categoriesRes, itemsRes] = await Promise.all([
+      const [categoriesRes, itemsRes, restaurantRes] = await Promise.all([
         axios.get("/api/menu/categories"),
         axios.get("/api/menu/items"),
+        axios.get("/api/restaurant/me"),
       ]);
       setCategories(categoriesRes.data);
       setItems(itemsRes.data.items);
+      setRestaurantInfo(restaurantRes.data);
     } catch (error) {
       console.error("Error fetching data:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchNewOrdersCount = async () => {
+    try {
+      const { data } = await axios.get("/api/orders?status=placed");
+      setNewOrdersCount(data.length);
+    } catch (error) {
+      console.error("Error fetching orders count:", error);
     }
   };
 
@@ -154,6 +194,14 @@ const RestaurantDashboard = () => {
         categoryId: itemFormData.categoryId || null,
         imageUrl: imageUrl,
         availability: itemFormData.availability,
+        isVeg: itemFormData.isVeg,
+        enableCustomization: itemFormData.enableCustomization || false,
+        sizes: itemFormData.sizes || [],
+        addOns: itemFormData.addOns || [],
+        customizationOptions: itemFormData.customizationOptions || [],
+        excludableIngredients: itemFormData.excludableIngredients || [],
+        allowSpecialInstructions:
+          itemFormData.allowSpecialInstructions !== false,
       });
 
       alert("Menu item added successfully!");
@@ -177,6 +225,13 @@ const RestaurantDashboard = () => {
       categoryId: "",
       imageFile: null,
       availability: true,
+      isVeg: true,
+      enableCustomization: false,
+      sizes: [],
+      addOns: [],
+      customizationOptions: [],
+      excludableIngredients: [],
+      allowSpecialInstructions: true,
     });
     setImagePreview(null);
     setEditingItem(null);
@@ -191,6 +246,13 @@ const RestaurantDashboard = () => {
       categoryId: item.categoryId?._id || "",
       imageFile: null,
       availability: item.availability,
+      isVeg: item.isVeg !== undefined ? item.isVeg : true,
+      enableCustomization: item.enableCustomization || false,
+      sizes: item.sizes || [],
+      addOns: item.addOns || [],
+      customizationOptions: item.customizationOptions || [],
+      excludableIngredients: item.excludableIngredients || [],
+      allowSpecialInstructions: item.allowSpecialInstructions !== false,
     });
     if (item.imageUrl) {
       setImagePreview(`http://localhost:5000${item.imageUrl}`);
@@ -228,6 +290,14 @@ const RestaurantDashboard = () => {
         categoryId: itemFormData.categoryId || null,
         imageUrl: imageUrl,
         availability: itemFormData.availability,
+        isVeg: itemFormData.isVeg,
+        enableCustomization: itemFormData.enableCustomization || false,
+        sizes: itemFormData.sizes || [],
+        addOns: itemFormData.addOns || [],
+        customizationOptions: itemFormData.customizationOptions || [],
+        excludableIngredients: itemFormData.excludableIngredients || [],
+        allowSpecialInstructions:
+          itemFormData.allowSpecialInstructions !== false,
       });
 
       alert("Menu item updated successfully!");
@@ -247,6 +317,32 @@ const RestaurantDashboard = () => {
   const handleLogout = () => {
     localStorage.clear();
     navigate("/");
+  };
+
+  const handleDownloadQR = () => {
+    const svg = document.getElementById("qr-code-svg");
+    const svgData = new XMLSerializer().serializeToString(svg);
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+    const img = new Image();
+
+    img.onload = () => {
+      canvas.width = img.width;
+      canvas.height = img.height;
+      ctx.drawImage(img, 0, 0);
+      const pngFile = canvas.toDataURL("image/png");
+
+      const downloadLink = document.createElement("a");
+      downloadLink.download = `${
+        restaurantInfo?.restaurantName || "restaurant"
+      }-menu-qr.png`;
+      downloadLink.href = pngFile;
+      downloadLink.click();
+    };
+
+    img.src =
+      "data:image/svg+xml;base64," +
+      btoa(unescape(encodeURIComponent(svgData)));
   };
 
   const toggleAvailability = async (itemId, currentStatus) => {
@@ -318,12 +414,57 @@ const RestaurantDashboard = () => {
               <p className="text-sm text-gray-600">Manage your menu</p>
             </div>
           </div>
-          <button
-            onClick={handleLogout}
-            className="px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 rounded-lg"
-          >
-            Logout
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => navigate("/restaurant/orders")}
+              className="relative flex items-center gap-2 px-4 py-2 bg-orange-600 text-white rounded-lg font-medium hover:bg-orange-700 btn-animate"
+            >
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+                />
+              </svg>
+              Orders
+              {newOrdersCount > 0 && (
+                <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center animate-pulse animate-wiggle">
+                  {newOrdersCount}
+                </span>
+              )}
+            </button>
+            <button
+              onClick={() => setShowQRModal(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700"
+            >
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"
+                />
+              </svg>
+              QR Code
+            </button>
+            <button
+              onClick={handleLogout}
+              className="px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 rounded-lg"
+            >
+              Logout
+            </button>
+          </div>
         </div>
       </header>
 
@@ -421,10 +562,11 @@ const RestaurantDashboard = () => {
 
         {/* Menu Items Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {filteredItems.map((item) => (
+          {filteredItems.map((item, index) => (
             <div
               key={item._id}
-              className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-shadow"
+              className="bg-white rounded-xl shadow-md overflow-hidden hover-lift animate-fadeIn"
+              style={{ animationDelay: `${index * 0.05}s` }}
             >
               <div className="relative h-48">
                 <img
@@ -781,6 +923,41 @@ const RestaurantDashboard = () => {
                   </div>
                 </div>
 
+                {/* Dietary Type */}
+                <div>
+                  <label className="block text-sm font-medium mb-2">
+                    Dietary Type *
+                  </label>
+                  <div className="flex gap-3">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setItemFormData({ ...itemFormData, isVeg: true })
+                      }
+                      className={`flex-1 px-4 py-3 rounded-lg font-medium border-2 ${
+                        itemFormData.isVeg
+                          ? "border-green-600 bg-green-50 text-green-700"
+                          : "border-gray-300 bg-white text-gray-700"
+                      }`}
+                    >
+                      🟢 Vegetarian
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setItemFormData({ ...itemFormData, isVeg: false })
+                      }
+                      className={`flex-1 px-4 py-3 rounded-lg font-medium border-2 ${
+                        !itemFormData.isVeg
+                          ? "border-red-600 bg-red-50 text-red-700"
+                          : "border-gray-300 bg-white text-gray-700"
+                      }`}
+                    >
+                      🔴 Non-Vegetarian
+                    </button>
+                  </div>
+                </div>
+
                 {/* Availability */}
                 <div className="flex items-center gap-3">
                   <input
@@ -800,6 +977,42 @@ const RestaurantDashboard = () => {
                   </label>
                 </div>
 
+                {/* Enable Customization Toggle */}
+                <div className="border-t pt-4">
+                  <div className="flex items-center gap-3 mb-2">
+                    <input
+                      type="checkbox"
+                      id="enableCustomization"
+                      checked={itemFormData.enableCustomization}
+                      onChange={(e) =>
+                        setItemFormData({
+                          ...itemFormData,
+                          enableCustomization: e.target.checked,
+                        })
+                      }
+                      className="w-5 h-5 text-green-600 rounded focus:ring-green-500"
+                    />
+                    <label
+                      htmlFor="enableCustomization"
+                      className="text-sm font-semibold"
+                    >
+                      Enable Customization for this item
+                    </label>
+                  </div>
+                  <p className="text-xs text-gray-500 ml-8">
+                    Allow customers to customize this item with sizes, add-ons,
+                    and other options
+                  </p>
+                </div>
+
+                {/* Customization Options - Only show if enabled */}
+                {itemFormData.enableCustomization && (
+                  <ItemCustomizationManager
+                    formData={itemFormData}
+                    setFormData={setItemFormData}
+                  />
+                )}
+
                 {/* Submit Button */}
                 <div className="flex gap-3">
                   <button
@@ -818,6 +1031,119 @@ const RestaurantDashboard = () => {
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* QR Code Modal */}
+      {showQRModal && restaurantInfo && (
+        <>
+          <div
+            className="fixed inset-0 bg-black/50 z-40"
+            onClick={() => setShowQRModal(false)}
+          />
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-xl shadow-xl max-w-lg w-full animate-scaleIn">
+              <div className="border-b px-6 py-4 flex justify-between items-center">
+                <h2 className="text-xl font-bold">Restaurant Menu QR Code</h2>
+                <button
+                  onClick={() => setShowQRModal(false)}
+                  className="text-gray-500 hover:text-gray-700"
+                >
+                  <svg
+                    className="w-6 h-6"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                </button>
+              </div>
+
+              <div className="p-6 text-center">
+                <div className="mb-6">
+                  <h3 className="text-2xl font-bold mb-2">
+                    {restaurantInfo.restaurantName}
+                  </h3>
+                  <p className="text-gray-600">
+                    Scan this QR code to view our menu
+                  </p>
+                </div>
+
+                <div className="flex justify-center mb-6 bg-white p-6 rounded-lg border-2 border-gray-200">
+                  <QRCodeSVG
+                    id="qr-code-svg"
+                    value={`${window.location.origin}/m/${restaurantInfo._id}`}
+                    size={256}
+                    level="H"
+                    includeMargin={true}
+                  />
+                </div>
+
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                  <p className="text-sm text-blue-800 font-medium mb-2">
+                    📱 How it works:
+                  </p>
+                  <ol className="text-sm text-blue-700 text-left space-y-1">
+                    <li>1. Customer scans this QR code</li>
+                    <li>2. Customer enters their table number</li>
+                    <li>3. Customer browses menu and places order</li>
+                    <li>4. You receive the order with table number</li>
+                  </ol>
+                </div>
+
+                <div className="flex gap-3">
+                  <button
+                    onClick={handleDownloadQR}
+                    className="flex-1 px-6 py-3 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 flex items-center justify-center gap-2"
+                  >
+                    <svg
+                      className="w-5 h-5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                      />
+                    </svg>
+                    Download QR Code
+                  </button>
+                  <button
+                    onClick={() => window.print()}
+                    className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 flex items-center justify-center gap-2"
+                  >
+                    <svg
+                      className="w-5 h-5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"
+                      />
+                    </svg>
+                    Print QR Code
+                  </button>
+                </div>
+
+                <p className="text-xs text-gray-500 mt-4">
+                  Menu URL: {window.location.origin}/m/{restaurantInfo._id}
+                </p>
+              </div>
             </div>
           </div>
         </>
@@ -1074,6 +1400,41 @@ const RestaurantDashboard = () => {
                   </div>
                 </div>
 
+                {/* Dietary Type */}
+                <div>
+                  <label className="block text-sm font-medium mb-2">
+                    Dietary Type *
+                  </label>
+                  <div className="flex gap-3">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setItemFormData({ ...itemFormData, isVeg: true })
+                      }
+                      className={`flex-1 px-4 py-3 rounded-lg font-medium border-2 ${
+                        itemFormData.isVeg
+                          ? "border-green-600 bg-green-50 text-green-700"
+                          : "border-gray-300 bg-white text-gray-700"
+                      }`}
+                    >
+                      🟢 Vegetarian
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setItemFormData({ ...itemFormData, isVeg: false })
+                      }
+                      className={`flex-1 px-4 py-3 rounded-lg font-medium border-2 ${
+                        !itemFormData.isVeg
+                          ? "border-red-600 bg-red-50 text-red-700"
+                          : "border-gray-300 bg-white text-gray-700"
+                      }`}
+                    >
+                      🔴 Non-Vegetarian
+                    </button>
+                  </div>
+                </div>
+
                 {/* Availability */}
                 <div className="flex items-center gap-3">
                   <input
@@ -1095,6 +1456,42 @@ const RestaurantDashboard = () => {
                     Item is available for ordering
                   </label>
                 </div>
+
+                {/* Enable Customization Toggle */}
+                <div className="border-t pt-4">
+                  <div className="flex items-center gap-3 mb-2">
+                    <input
+                      type="checkbox"
+                      id="edit-enableCustomization"
+                      checked={itemFormData.enableCustomization}
+                      onChange={(e) =>
+                        setItemFormData({
+                          ...itemFormData,
+                          enableCustomization: e.target.checked,
+                        })
+                      }
+                      className="w-5 h-5 text-green-600 rounded focus:ring-green-500"
+                    />
+                    <label
+                      htmlFor="edit-enableCustomization"
+                      className="text-sm font-semibold"
+                    >
+                      Enable Customization for this item
+                    </label>
+                  </div>
+                  <p className="text-xs text-gray-500 ml-8">
+                    Allow customers to customize this item with sizes, add-ons,
+                    and other options
+                  </p>
+                </div>
+
+                {/* Customization Options - Only show if enabled */}
+                {itemFormData.enableCustomization && (
+                  <ItemCustomizationManager
+                    formData={itemFormData}
+                    setFormData={setItemFormData}
+                  />
+                )}
 
                 {/* Submit Button */}
                 <div className="flex gap-3">

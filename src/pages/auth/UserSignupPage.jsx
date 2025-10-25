@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { useAuth } from "../../context/AuthContext";
+import { useAuth } from "../../context/MultiAuthContext";
 import axios from "axios";
 
 const UserSignupPage = () => {
@@ -97,8 +97,14 @@ const UserSignupPage = () => {
       localStorage.setItem("token", data.token);
       axios.defaults.headers.common["Authorization"] = `Bearer ${data.token}`;
 
-      // Reload page to trigger auth context update
-      window.location.href = "/dashboard";
+      // Check for redirect path
+      const redirectPath = sessionStorage.getItem("redirectAfterLogin");
+      if (redirectPath) {
+        sessionStorage.removeItem("redirectAfterLogin");
+        window.location.href = redirectPath;
+      } else {
+        window.location.href = "/dashboard";
+      }
     } catch (err) {
       setError(err.response?.data?.message || "Registration failed");
     } finally {

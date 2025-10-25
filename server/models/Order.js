@@ -2,9 +2,13 @@ import mongoose from "mongoose";
 
 const orderSchema = new mongoose.Schema(
   {
-    tableId: {
+    restaurantId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Table",
+      ref: "Restaurant",
+      required: true,
+    },
+    tableNumber: {
+      type: String,
       required: true,
     },
     items: [
@@ -12,20 +16,21 @@ const orderSchema = new mongoose.Schema(
         menuItemId: {
           type: mongoose.Schema.Types.ObjectId,
           ref: "MenuItem",
-          required: true,
         },
-        qty: { type: Number, required: true },
-        note: { type: String },
+        name: { type: String, required: true },
+        price: { type: Number, required: true },
+        quantity: { type: Number, required: true },
       },
     ],
+    specialInstructions: { type: String },
+    totalAmount: { type: Number, required: true },
     status: {
       type: String,
-      enum: ["placed", "preparing", "ready", "served", "canceled"],
+      enum: ["placed", "preparing", "ready", "delivered", "cancelled"],
       default: "placed",
     },
-    subtotal: { type: Number, required: true },
-    tax: { type: Number, required: true },
-    total: { type: Number, required: true },
+    estimatedWaitTime: { type: Number }, // in minutes
+    estimatedReadyTime: { type: Date },
   },
   { timestamps: true }
 );

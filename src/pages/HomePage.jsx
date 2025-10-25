@@ -1,11 +1,25 @@
 import { Link } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "../context/MultiAuthContext";
 
 const HomePage = () => {
-  const { user, logout } = useAuth();
+  const { sessions, logout } = useAuth();
+
+  // Get any active session for display
+  const user =
+    sessions.customer.user || sessions.restaurant.user || sessions.admin.user;
+  const userType = sessions.customer.isAuthenticated
+    ? "customer"
+    : sessions.restaurant.isAuthenticated
+    ? "restaurant"
+    : sessions.admin.isAuthenticated
+    ? "admin"
+    : null;
 
   const handleLogout = () => {
-    logout();
+    // Logout from all sessions
+    if (sessions.customer.isAuthenticated) logout("customer");
+    if (sessions.restaurant.isAuthenticated) logout("restaurant");
+    if (sessions.admin.isAuthenticated) logout("admin");
     window.location.reload();
   };
 
@@ -58,7 +72,7 @@ const HomePage = () => {
             {/* Customer Login */}
             <Link
               to="/login"
-              className="bg-white rounded-xl shadow-lg p-8 hover:shadow-xl transition-shadow"
+              className="bg-white rounded-xl shadow-lg p-8 hover-lift animate-fadeIn"
             >
               <div className="flex justify-center mb-4">
                 <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center">
@@ -86,7 +100,8 @@ const HomePage = () => {
             {/* Restaurant Login */}
             <Link
               to="/restaurant/login"
-              className="bg-white rounded-xl shadow-lg p-8 hover:shadow-xl transition-shadow"
+              className="bg-white rounded-xl shadow-lg p-8 hover-lift animate-fadeIn"
+              style={{ animationDelay: "0.1s" }}
             >
               <div className="flex justify-center mb-4">
                 <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
@@ -114,7 +129,8 @@ const HomePage = () => {
             {/* Admin Login */}
             <Link
               to="/admin/login"
-              className="bg-white rounded-xl shadow-lg p-8 hover:shadow-xl transition-shadow"
+              className="bg-white rounded-xl shadow-lg p-8 hover-lift animate-fadeIn"
+              style={{ animationDelay: "0.2s" }}
             >
               <div className="flex justify-center mb-4">
                 <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center">

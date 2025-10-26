@@ -15,6 +15,70 @@ router.get("/debug", (req, res) => {
   });
 });
 
+// Test endpoint to check feedback system for any customer/restaurant
+router.get("/test/:restaurantId/:tableNumber", async (req, res) => {
+  try {
+    const { restaurantId, tableNumber } = req.params;
+    
+    console.log("Testing feedback system for:", { restaurantId, tableNumber });
+    
+    // Validate restaurantId
+    if (!mongoose.Types.ObjectId.isValid(restaurantId)) {
+      return res.status(400).json({ 
+        error: "Invalid restaurant ID format",
+        restaurantId 
+      });
+    }
+    
+    // Check for orders
+    const orders = await Order.find({
+      restaurantId: new mongoose.Types.ObjectId(restaurantId),
+      tableNumber: tableNumber
+    })
+    .populate('items.menuItemId', 'name')
+    .populate('restaurantId', 'restaurantName');
+    
+    // Check for customer records
+    const sessionId = `${restaurantId}-${tableNumber}`;
+    const guestEmail = `guest-${restaurantId}-${tableNumber}@temp.com`;
+    
+    const sessionCustomer = await Customer.findOne({ sessionId });
+    const emailCustomer = await Customer.findOne({ email: guestEmail });
+    
+    res.json({
+      success: true,
+      restaurantId,
+      tableNumber,
+      sessionId,
+      guestEmail,
+      ordersFound: orders.length,
+      orders: orders.map(o => ({
+        id: o._id,
+        status: o.status,
+        totalAmount: o.totalAmount,
+        feedbackSubmitted: o.feedback?.submitted || false,
+        itemsCount: o.items.length,
+        restaurantName: o.restaurantId?.restaurantName
+      })),
+      customers: {
+        sessionCustomer: !!sessionCustomer,
+        emailCustomer: !!emailCustomer,
+        sessionCustomerPoints: sessionCustomer?.totalFeedbackPoints || 0,
+        emailCustomerPoints: emailCustomer?.totalFeedbackPoints || 0
+      }
+    });
+    
+  } catch (error) {
+    console.error("Test endpoint error:", error);
+    res.status(500).json({ 
+      error: "Test failed", 
+      message: error.message,
+      restaurantId: req.params.restaurantId,
+      tableNumber: req.params.tableNumber
+    });
+  }
+});
+
 // Temporary migration endpoint in feedback routes
 router.post("/migrate-orders", async (req, res) => {
   try {
@@ -171,29 +235,87 @@ router.post("/order/:orderId", sanitizeInput, async (req, res) => {
   }
 });
 
-// Get customer feedback history
+// Get customer feedback history (Legacy route - now uses same logic as orders endpoint)
 router.get("/customer/:sessionId", async (req, res) => {
   try {
     const { sessionId } = req.params;
+    const [restaurantId, tableNumber] = sessionId.split('-');
     
-    const customer = await Customer.findOne({ sessionId })
-      .populate('orderHistory.items.menuItemId', 'name imageUrl');
+    console.log("Legacy feedback route called for sessionId:", sessionId);
     
-    if (!customer) {
+    // Validate that we have both restaurantId and tableNumber
+    if (!restaurantId || !tableNumber) {
       return res.json({
         totalPoints: 0,
-        orderHistory: []
+        orderHistory: [],
+        message: "Invalid session ID format"
       });
     }
 
+    // Validate restaurantId is a valid ObjectId
+    if (!mongoose.Types.ObjectId.isValid(restaurantId)) {
+      return res.json({
+        totalPoints: 0,
+        orderHistory: [],
+        message: "Invalid restaurant ID format"
+      });
+    }
+    
+    // Try to find customer by session (old way) or by guest email (new way)
+    let customer = await Customer.findOne({ sessionId });
+    if (!customer) {
+      const guestEmail = `guest-${restaurantId}-${tableNumber}@temp.com`;
+      customer = await Customer.findOne({ email: guestEmail });
+    }
+    
+    const totalPoints = customer?.totalFeedbackPoints || 0;
+    
+    // Get all orders for this session
+    const orders = await Order.find({
+      restaurantId: new mongoose.Types.ObjectId(restaurantId),
+      tableNumber: tableNumber
+    })
+    .populate('items.menuItemId', 'name imageUrl')
+    .populate('restaurantId', 'restaurantName')
+    .sort({ createdAt: -1 });
+
+    // Calculate total points from orders if no customer record exists
+    let calculatedPoints = totalPoints;
+    if (!customer) {
+      calculatedPoints = orders.reduce((sum, order) => {
+        return sum + (order.feedback?.totalPoints || 0);
+      }, 0);
+    }
+
+    // Format orders for response (legacy format)
+    const orderHistory = orders.map(order => ({
+      orderId: order._id,
+      orderDate: order.createdAt,
+      restaurantId: order.restaurantId?._id || order.restaurantId,
+      tableNumber: order.tableNumber,
+      totalPoints: order.feedback?.totalPoints || 0,
+      items: order.items.filter(item => item.feedback?.rating).map(item => ({
+        menuItemId: item.menuItemId,
+        name: item.name,
+        rating: item.feedback?.rating,
+        description: item.feedback?.description,
+        points: item.feedback?.rating ? (item.feedback.rating * 2) * item.quantity : 0,
+        feedbackDate: item.feedback?.submittedAt
+      }))
+    })).filter(order => order.items.length > 0); // Only include orders with feedback
+
     res.json({
-      totalPoints: customer.totalFeedbackPoints,
-      orderHistory: customer.orderHistory
+      totalPoints: calculatedPoints,
+      orderHistory
     });
 
   } catch (error) {
     console.error("Error fetching customer feedback:", error);
-    res.status(500).json({ message: "Failed to fetch feedback history" });
+    res.json({
+      totalPoints: 0,
+      orderHistory: [],
+      message: "Failed to fetch feedback history"
+    });
   }
 });
 
@@ -201,23 +323,140 @@ router.get("/customer/:sessionId", async (req, res) => {
 router.get("/customer/email/:email/orders", async (req, res) => {
   try {
     const { email } = req.params;
+    const decodedEmail = decodeURIComponent(email);
     
-    console.log("Debug - Customer email:", email);
+    console.log("Debug - Customer email:", decodedEmail);
+    
+    // Validate email format
+    if (!decodedEmail || !decodedEmail.includes('@')) {
+      return res.status(400).json({ 
+        message: "Invalid email format",
+        email: decodedEmail 
+      });
+    }
     
     // Get customer record
-    const customer = await Customer.findOne({ email });
+    const customer = await Customer.findOne({ email: decodedEmail });
     const totalPoints = customer?.totalFeedbackPoints || 0;
     console.log("Debug - Customer found:", !!customer, "Total points:", totalPoints);
     
-    // Get all orders for this customer
+    // Get all orders for this customer across ALL restaurants
     const orders = await Order.find({
-      customerEmail: email
+      customerEmail: decodedEmail
     })
     .populate('items.menuItemId', 'name imageUrl')
     .populate('restaurantId', 'restaurantName')
     .sort({ createdAt: -1 });
 
     console.log("Debug - Orders found for customer:", orders.length);
+
+    // Calculate total points from orders if no customer record exists
+    let calculatedPoints = totalPoints;
+    if (!customer) {
+      calculatedPoints = orders.reduce((sum, order) => {
+        return sum + (order.feedback?.totalPoints || 0);
+      }, 0);
+    }
+
+    // Format orders for response
+    const orderHistory = orders.map(order => ({
+      orderId: order._id,
+      orderDate: order.createdAt,
+      status: order.status,
+      totalAmount: order.totalAmount,
+      tableNumber: order.tableNumber,
+      restaurantName: order.restaurantId?.restaurantName || 'Unknown Restaurant',
+      restaurantId: order.restaurantId?._id || order.restaurantId,
+      feedbackSubmitted: order.feedback?.submitted || false,
+      totalPoints: order.feedback?.totalPoints || 0,
+      items: order.items.map(item => ({
+        menuItemId: item.menuItemId,
+        name: item.name,
+        price: item.price,
+        quantity: item.quantity,
+        rating: item.feedback?.rating,
+        description: item.feedback?.description,
+        points: item.feedback?.rating ? (item.feedback.rating * 2) * item.quantity : 0,
+        feedbackDate: item.feedback?.submittedAt,
+        imageUrl: item.menuItemId?.imageUrl
+      }))
+    }));
+
+    res.json({
+      totalPoints: calculatedPoints,
+      orderHistory,
+      debug: {
+        email: decodedEmail,
+        customerFound: !!customer,
+        ordersCount: orders.length,
+        calculatedPoints
+      }
+    });
+
+  } catch (error) {
+    console.error("Error fetching customer orders:", error);
+    res.status(500).json({ 
+      message: "Failed to fetch customer orders", 
+      error: error.message,
+      email: req.params.email
+    });
+  }
+});
+
+// Get all customer orders (including those without feedback) - Legacy route for table sessions
+router.get("/customer/:sessionId/orders", async (req, res) => {
+  try {
+    const { sessionId } = req.params;
+    const [restaurantId, tableNumber] = sessionId.split('-');
+    
+    console.log("Debug - SessionId:", sessionId);
+    console.log("Debug - RestaurantId:", restaurantId);
+    console.log("Debug - TableNumber:", tableNumber);
+    
+    // Validate that we have both restaurantId and tableNumber
+    if (!restaurantId || !tableNumber) {
+      return res.status(400).json({ 
+        message: "Invalid session ID format. Expected format: restaurantId-tableNumber",
+        sessionId 
+      });
+    }
+
+    // Validate restaurantId is a valid ObjectId
+    if (!mongoose.Types.ObjectId.isValid(restaurantId)) {
+      return res.status(400).json({ 
+        message: "Invalid restaurant ID format",
+        restaurantId 
+      });
+    }
+    
+    // Try to find customer by session (old way) or by guest email (new way)
+    let customer = await Customer.findOne({ sessionId });
+    if (!customer) {
+      const guestEmail = `guest-${restaurantId}-${tableNumber}@temp.com`;
+      customer = await Customer.findOne({ email: guestEmail });
+    }
+    
+    const totalPoints = customer?.totalFeedbackPoints || 0;
+    console.log("Debug - Customer found:", !!customer, "Total points:", totalPoints);
+    
+    // Get all orders for this session (convert restaurantId to ObjectId)
+    const orders = await Order.find({
+      restaurantId: new mongoose.Types.ObjectId(restaurantId),
+      tableNumber: tableNumber
+    })
+    .populate('items.menuItemId', 'name imageUrl')
+    .populate('restaurantId', 'restaurantName')
+    .sort({ createdAt: -1 });
+
+    console.log("Debug - Orders found for session:", orders.length);
+
+    // Calculate total points from orders if no customer record exists
+    let calculatedPoints = totalPoints;
+    if (!customer) {
+      calculatedPoints = orders.reduce((sum, order) => {
+        return sum + (order.feedback?.totalPoints || 0);
+      }, 0);
+    }
 
     // Format orders for response
     const orderHistory = orders.map(order => ({
@@ -243,93 +482,12 @@ router.get("/customer/email/:email/orders", async (req, res) => {
     }));
 
     res.json({
-      totalPoints,
-      orderHistory,
-      debug: {
-        email,
-        customerFound: !!customer,
-        ordersCount: orders.length
-      }
-    });
-
-  } catch (error) {
-    console.error("Error fetching customer orders:", error);
-    res.status(500).json({ message: "Failed to fetch customer orders" });
-  }
-});
-
-// Get all customer orders (including those without feedback) - Legacy route for table sessions
-router.get("/customer/:sessionId/orders", async (req, res) => {
-  try {
-    const { sessionId } = req.params;
-    const [restaurantId, tableNumber] = sessionId.split('-');
-    
-    console.log("Debug - SessionId:", sessionId);
-    console.log("Debug - RestaurantId:", restaurantId);
-    console.log("Debug - TableNumber:", tableNumber);
-    
-    // Try to find customer by session (old way) or by guest email (new way)
-    let customer = await Customer.findOne({ sessionId });
-    if (!customer) {
-      const guestEmail = `guest-${restaurantId}-${tableNumber}@temp.com`;
-      customer = await Customer.findOne({ email: guestEmail });
-    }
-    
-    const totalPoints = customer?.totalFeedbackPoints || 0;
-    console.log("Debug - Customer found:", !!customer, "Total points:", totalPoints);
-    
-    // First, let's see all orders for this restaurant
-    const allOrders = await Order.find({ restaurantId: new mongoose.Types.ObjectId(restaurantId) });
-    console.log("Debug - All orders for restaurant:", allOrders.length);
-    console.log("Debug - Sample order tableNumbers:", allOrders.slice(0, 3).map(o => o.tableNumber));
-    
-    // Get all orders for this session (convert restaurantId to ObjectId)
-    const orders = await Order.find({
-      restaurantId: new mongoose.Types.ObjectId(restaurantId),
-      tableNumber: tableNumber
-    })
-    .populate('items.menuItemId', 'name imageUrl')
-    .sort({ createdAt: -1 });
-
-    console.log("Debug - Orders found for session:", orders.length);
-
-    // Calculate total points from orders if no customer record exists
-    let calculatedPoints = totalPoints;
-    if (!customer) {
-      calculatedPoints = orders.reduce((sum, order) => {
-        return sum + (order.feedback?.totalPoints || 0);
-      }, 0);
-    }
-
-    // Format orders for response
-    const orderHistory = orders.map(order => ({
-      orderId: order._id,
-      orderDate: order.createdAt,
-      status: order.status,
-      totalAmount: order.totalAmount,
-      feedbackSubmitted: order.feedback?.submitted || false,
-      totalPoints: order.feedback?.totalPoints || 0,
-      items: order.items.map(item => ({
-        menuItemId: item.menuItemId,
-        name: item.name,
-        price: item.price,
-        quantity: item.quantity,
-        rating: item.feedback?.rating,
-        description: item.feedback?.description,
-        points: item.feedback?.rating ? (item.feedback.rating * 2) * item.quantity : 0,
-        feedbackDate: item.feedback?.submittedAt,
-        imageUrl: item.menuItemId?.imageUrl
-      }))
-    }));
-
-    res.json({
       totalPoints: calculatedPoints,
       orderHistory,
       debug: {
         sessionId,
         restaurantId,
         tableNumber,
-        allOrdersCount: allOrders.length,
         matchingOrdersCount: orders.length,
         customerFound: !!customer,
         calculatedPoints
@@ -338,7 +496,11 @@ router.get("/customer/:sessionId/orders", async (req, res) => {
 
   } catch (error) {
     console.error("Error fetching customer orders:", error);
-    res.status(500).json({ message: "Failed to fetch customer orders" });
+    res.status(500).json({ 
+      message: "Failed to fetch customer orders", 
+      error: error.message,
+      sessionId: req.params.sessionId
+    });
   }
 });
 

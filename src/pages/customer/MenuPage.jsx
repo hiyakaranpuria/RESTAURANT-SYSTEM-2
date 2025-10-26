@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import ItemCustomizationModal from "../../components/ItemCustomizationModal";
 import CustomerLoginModal from "../../components/CustomerLoginModal";
+import FeedbackHistoryModal from "../../components/FeedbackHistoryModal";
 import { useAuth } from "../../context/MultiAuthContext";
 
 const MenuPage = () => {
@@ -25,6 +26,7 @@ const MenuPage = () => {
   const [customizingItem, setCustomizingItem] = useState(null);
   const [showCustomerLogin, setShowCustomerLogin] = useState(false);
   const [customerPoints, setCustomerPoints] = useState(0);
+  const [showFeedbackHistory, setShowFeedbackHistory] = useState(false);
 
   const { isCustomerAuthenticated, getCustomerSession } = useAuth();
 
@@ -946,7 +948,14 @@ const MenuPage = () => {
         />
       )}
 
-
+      {/* Feedback History Modal */}
+      <FeedbackHistoryModal
+        isOpen={showFeedbackHistory}
+        onClose={() => setShowFeedbackHistory(false)}
+        restaurantId={restaurantId}
+        tableNumber={tableNumber}
+        onPointsUpdate={setCustomerPoints}
+      />
     </div>
   );
 };

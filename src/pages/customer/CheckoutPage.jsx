@@ -67,6 +67,9 @@ const CheckoutPage = () => {
     setPlacing(true);
     try {
       const customerSession = getCustomerSession();
+      console.log("Customer session:", customerSession);
+      console.log("Cart items:", cart);
+      
       const orderData = {
         restaurantId,
         tableNumber,
@@ -78,7 +81,7 @@ const CheckoutPage = () => {
         })),
         specialInstructions,
         totalAmount: getTotalPrice(),
-        customerInfo: customerSession.isAuthenticated
+        customerInfo: customerSession.isAuthenticated && customerSession.user
           ? {
               userId: customerSession.user._id,
               email: customerSession.user.email,
@@ -88,6 +91,8 @@ const CheckoutPage = () => {
           : null,
       };
 
+      console.log("Order data being sent:", orderData);
+
       const { data } = await axios.post("/api/orders", orderData);
 
       // Clear cart
@@ -96,6 +101,8 @@ const CheckoutPage = () => {
       // Redirect to order tracking
       navigate(`/order/${data._id}`);
     } catch (error) {
+      console.error("Order placement error:", error);
+      console.error("Error response:", error.response?.data);
       alert(
         "Error placing order: " +
           (error.response?.data?.message || error.message)

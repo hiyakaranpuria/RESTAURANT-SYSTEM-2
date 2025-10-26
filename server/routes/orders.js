@@ -35,6 +35,8 @@ router.post(
   validateOrderCreation,
   async (req, res) => {
     try {
+      console.log("Order creation request body:", req.body);
+      
       const {
         restaurantId,
         tableNumber,
@@ -55,36 +57,58 @@ router.post(
 
       // Add customer information if provided
       if (customerInfo) {
+        console.log("Customer info provided:", customerInfo);
         if (customerInfo.userId) {
           orderData.customerId = customerInfo.userId;
         }
         if (customerInfo.email) {
           orderData.customerEmail = customerInfo.email;
         }
+      } else {
+        console.log("No customer info provided, creating guest order");
+        // For guest orders, create a guest email
+        const guestEmail = `guest-${restaurantId}-${tableNumber}@temp.com`;
+        orderData.customerEmail = guestEmail;
       }
 
+      console.log("Final order data:", orderData);
+
       const order = await Order.create(orderData);
+      console.log("Order created successfully:", order._id);
 
       // Create or update customer record
-      if (customerInfo && customerInfo.email) {
-        let customer = await Customer.findOne({ email: customerInfo.email });
+      const emailToUse = customerInfo?.email || `guest-${restaurantId}-${tableNumber}@temp.com`;
+      
+      try {
+        let customer = await Customer.findOne({ email: emailToUse });
         if (!customer) {
           customer = new Customer({
-            userId: customerInfo.userId || null,
-            email: customerInfo.email,
-            name: customerInfo.name || null,
-            phone: customerInfo.phone || null,
+            userId: customerInfo?.userId || null,
+            email: emailToUse,
+            name: customerInfo?.name || (emailToUse.includes('guest-') ? `Guest (Table ${tableNumber})` : null),
+            phone: customerInfo?.phone || null,
             totalFeedbackPoints: 0,
             orderHistory: []
           });
           await customer.save();
+          console.log("Customer record created:", customer._id);
+        } else {
+          console.log("Customer record found:", customer._id);
         }
+      } catch (customerError) {
+        console.error("Customer record error (non-critical):", customerError);
+        // Don't fail the order if customer record creation fails
       }
 
       await order.populate("restaurantId");
       res.status(201).json(order);
     } catch (error) {
-      res.status(500).json({ message: error.message });
+      console.error("Order creation error:", error);
+      res.status(500).json({ 
+        message: error.message,
+        details: error.stack,
+        requestBody: req.body
+      });
     }
   }
 );

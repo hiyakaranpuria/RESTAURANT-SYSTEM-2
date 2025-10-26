@@ -325,8 +325,6 @@ router.get("/customer/email/:email/orders", async (req, res) => {
     const { email } = req.params;
     const decodedEmail = decodeURIComponent(email);
     
-    console.log("Debug - Customer email:", decodedEmail);
-    
     // Validate email format
     if (!decodedEmail || !decodedEmail.includes('@')) {
       return res.status(400).json({ 
@@ -338,7 +336,6 @@ router.get("/customer/email/:email/orders", async (req, res) => {
     // Get customer record
     const customer = await Customer.findOne({ email: decodedEmail });
     const totalPoints = customer?.totalFeedbackPoints || 0;
-    console.log("Debug - Customer found:", !!customer, "Total points:", totalPoints);
     
     // Get all orders for this customer across ALL restaurants
     const orders = await Order.find({
@@ -347,8 +344,6 @@ router.get("/customer/email/:email/orders", async (req, res) => {
     .populate('items.menuItemId', 'name imageUrl')
     .populate('restaurantId', 'restaurantName')
     .sort({ createdAt: -1 });
-
-    console.log("Debug - Orders found for customer:", orders.length);
 
     // Calculate total points from orders if no customer record exists
     let calculatedPoints = totalPoints;
@@ -384,21 +379,14 @@ router.get("/customer/email/:email/orders", async (req, res) => {
 
     res.json({
       totalPoints: calculatedPoints,
-      orderHistory,
-      debug: {
-        email: decodedEmail,
-        customerFound: !!customer,
-        ordersCount: orders.length,
-        calculatedPoints
-      }
+      orderHistory
     });
 
   } catch (error) {
     console.error("Error fetching customer orders:", error);
     res.status(500).json({ 
       message: "Failed to fetch customer orders", 
-      error: error.message,
-      email: req.params.email
+      error: error.message
     });
   }
 });
@@ -409,23 +397,17 @@ router.get("/customer/:sessionId/orders", async (req, res) => {
     const { sessionId } = req.params;
     const [restaurantId, tableNumber] = sessionId.split('-');
     
-    console.log("Debug - SessionId:", sessionId);
-    console.log("Debug - RestaurantId:", restaurantId);
-    console.log("Debug - TableNumber:", tableNumber);
-    
     // Validate that we have both restaurantId and tableNumber
     if (!restaurantId || !tableNumber) {
       return res.status(400).json({ 
-        message: "Invalid session ID format. Expected format: restaurantId-tableNumber",
-        sessionId 
+        message: "Invalid session ID format. Expected format: restaurantId-tableNumber"
       });
     }
 
     // Validate restaurantId is a valid ObjectId
     if (!mongoose.Types.ObjectId.isValid(restaurantId)) {
       return res.status(400).json({ 
-        message: "Invalid restaurant ID format",
-        restaurantId 
+        message: "Invalid restaurant ID format"
       });
     }
     
@@ -437,7 +419,6 @@ router.get("/customer/:sessionId/orders", async (req, res) => {
     }
     
     const totalPoints = customer?.totalFeedbackPoints || 0;
-    console.log("Debug - Customer found:", !!customer, "Total points:", totalPoints);
     
     // Get all orders for this session (convert restaurantId to ObjectId)
     const orders = await Order.find({
@@ -447,8 +428,6 @@ router.get("/customer/:sessionId/orders", async (req, res) => {
     .populate('items.menuItemId', 'name imageUrl')
     .populate('restaurantId', 'restaurantName')
     .sort({ createdAt: -1 });
-
-    console.log("Debug - Orders found for session:", orders.length);
 
     // Calculate total points from orders if no customer record exists
     let calculatedPoints = totalPoints;
@@ -483,23 +462,13 @@ router.get("/customer/:sessionId/orders", async (req, res) => {
 
     res.json({
       totalPoints: calculatedPoints,
-      orderHistory,
-      debug: {
-        sessionId,
-        restaurantId,
-        tableNumber,
-        matchingOrdersCount: orders.length,
-        customerFound: !!customer,
-        calculatedPoints
-      }
+      orderHistory
     });
 
   } catch (error) {
     console.error("Error fetching customer orders:", error);
     res.status(500).json({ 
-      message: "Failed to fetch customer orders", 
-      error: error.message,
-      sessionId: req.params.sessionId
+      message: "Failed to fetch customer orders"
     });
   }
 });

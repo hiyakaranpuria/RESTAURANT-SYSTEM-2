@@ -45,16 +45,24 @@ const MenuPage = () => {
   }, [restaurantId]);
 
   useEffect(() => {
-    if (tableNumber && restaurantId) {
+    // For logged-in customers, fetch points immediately (no table dependency)
+    // For guests, wait for table number
+    const customerSession = getCustomerSession();
+    if (customerSession.isAuthenticated || (tableNumber && restaurantId)) {
       fetchCustomerPoints();
     }
-  }, [tableNumber, restaurantId]);
+  }, [tableNumber, restaurantId, isCustomerAuthenticated]);
 
   // Refresh points when page becomes visible (user returns from other pages)
   useEffect(() => {
     const handleVisibilityChange = () => {
-      if (!document.hidden && tableNumber && restaurantId) {
-        fetchCustomerPoints();
+      if (!document.hidden) {
+        const customerSession = getCustomerSession();
+        // For logged-in customers, always refresh (no table dependency)
+        // For guests, need table and restaurant
+        if (customerSession.isAuthenticated || (tableNumber && restaurantId)) {
+          fetchCustomerPoints();
+        }
       }
     };
 
@@ -62,17 +70,33 @@ const MenuPage = () => {
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [tableNumber, restaurantId]);
+  }, [tableNumber, restaurantId, isCustomerAuthenticated]);
 
   const fetchCustomerPoints = async () => {
-    if (restaurantId && tableNumber) {
-      try {
-        const sessionId = `${restaurantId}-${tableNumber}`;
-        const response = await axios.get(`/api/feedback/customer/${sessionId}`);
+    try {
+      // Check if customer is logged in first
+      const customerSession = getCustomerSession();
+      
+      if (customerSession.isAuthenticated && customerSession.user?.email) {
+        // Logged in customer - get their personal points across all restaurants
+        // Table number is irrelevant for logged-in customers
+        const response = await axios.get(`/api/feedback/customer/email/${encodeURIComponent(customerSession.user.email)}/orders`);
         setCustomerPoints(response.data.totalPoints || 0);
-      } catch (error) {
-        console.error("Error fetching customer points:", error);
+      } else {
+        // Guest customer - only show points if they have a table session
+        // For guests, points are tied to table sessions
+        if (restaurantId && tableNumber) {
+          const sessionId = `${restaurantId}-${tableNumber}`;
+          const response = await axios.get(`/api/feedback/customer/${sessionId}/orders`);
+          setCustomerPoints(response.data.totalPoints || 0);
+        } else {
+          // No table session for guest = no points
+          setCustomerPoints(0);
+        }
       }
+    } catch (error) {
+      console.error("Error fetching customer points:", error);
+      setCustomerPoints(0);
     }
   };
 
@@ -374,7 +398,16 @@ const MenuPage = () => {
             <div className="flex items-center gap-2">
               {/* Order History Button */}
               <button
-                onClick={() => navigate(`/customer/history/${restaurantId}`)}
+                onClick={() => {
+                  const customerSession = getCustomerSession();
+                  if (customerSession.isAuthenticated) {
+                    // Logged in customer - show all their orders across restaurants
+                    navigate('/customer/orders');
+                  } else {
+                    // Guest customer - show orders for this table/restaurant
+                    navigate(`/customer/history/${restaurantId}`);
+                  }
+                }}
                 className="bg-blue-500 text-white px-3 py-2 rounded-lg font-medium hover:bg-blue-600 flex items-center gap-2"
               >
                 <svg

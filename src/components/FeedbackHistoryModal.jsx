@@ -21,12 +21,10 @@ const FeedbackHistoryModal = ({ isOpen, onClose, restaurantId, tableNumber, onPo
       
       let response;
       if (customerSession.isAuthenticated && customerSession.user?.email) {
-        // Logged in customer - get all their orders
-        console.log("Fetching feedback for logged in customer:", customerSession.user.email);
+        // Logged in customer - get all their orders across all restaurants
         response = await axios.get(`/api/feedback/customer/email/${encodeURIComponent(customerSession.user.email)}/orders`);
       } else {
         // Guest customer - get orders for this table/restaurant session
-        console.log("Fetching feedback for guest customer:", `${restaurantId}-${tableNumber}`);
         const sessionId = `${restaurantId}-${tableNumber}`;
         response = await axios.get(`/api/feedback/customer/${sessionId}/orders`);
       }

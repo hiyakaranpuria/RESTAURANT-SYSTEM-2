@@ -2,33 +2,62 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Star, ArrowLeft, Award, Calendar, ShoppingBag } from "lucide-react";
 import axios from "axios";
+import { useAuth } from "../../context/MultiAuthContext";
 
 const CustomerOrderHistory = () => {
   const { restaurantId } = useParams();
   const navigate = useNavigate();
+  const { isCustomerAuthenticated, getCustomerSession } = useAuth();
   const [loading, setLoading] = useState(true);
   const [orderHistory, setOrderHistory] = useState(null);
   const [tableNumber, setTableNumber] = useState("");
 
   useEffect(() => {
-    const savedTable = sessionStorage.getItem("tableNumber");
-    const savedRestaurant = sessionStorage.getItem("restaurantId");
-
-    if (savedTable && savedRestaurant === restaurantId) {
-      setTableNumber(savedTable);
-      fetchOrderHistory(savedTable);
+    const customerSession = getCustomerSession();
+    
+    if (customerSession.isAuthenticated) {
+      // Logged in customer - fetch all their orders (no table dependency)
+      fetchOrderHistory();
     } else {
-      navigate(`/m/${restaurantId}`);
+      // Guest customer - need table information
+      const savedTable = sessionStorage.getItem("tableNumber");
+      const savedRestaurant = sessionStorage.getItem("restaurantId");
+
+      if (savedTable && savedRestaurant === restaurantId) {
+        setTableNumber(savedTable);
+        fetchOrderHistory(savedTable);
+      } else {
+        // Try to get table number from URL or prompt user
+        const urlParams = new URLSearchParams(window.location.search);
+        const tableFromUrl = urlParams.get('table');
+        
+        if (tableFromUrl) {
+          setTableNumber(tableFromUrl);
+          sessionStorage.setItem("tableNumber", tableFromUrl);
+          sessionStorage.setItem("restaurantId", restaurantId);
+          fetchOrderHistory(tableFromUrl);
+        } else {
+          navigate(`/m/${restaurantId}`);
+        }
+      }
     }
-  }, [restaurantId, navigate]);
+  }, [restaurantId, navigate, isCustomerAuthenticated]);
 
   const fetchOrderHistory = async (table) => {
     try {
       setLoading(true);
-      const sessionId = `${restaurantId}-${table}`;
-      console.log("Fetching order history for sessionId:", sessionId);
-      const response = await axios.get(`/api/feedback/customer/${sessionId}/orders`);
-      console.log("Order history response:", response.data);
+      const customerSession = getCustomerSession();
+      
+      let response;
+      if (customerSession.isAuthenticated && customerSession.user?.email) {
+        // Logged in customer - get all their orders across all restaurants
+        response = await axios.get(`/api/feedback/customer/email/${encodeURIComponent(customerSession.user.email)}/orders`);
+      } else {
+        // Guest customer - get orders for this table/restaurant session
+        const sessionId = `${restaurantId}-${table}`;
+        response = await axios.get(`/api/feedback/customer/${sessionId}/orders`);
+      }
+      
       setOrderHistory(response.data);
     } catch (error) {
       console.error("Error fetching order history:", error);
@@ -78,30 +107,18 @@ const CustomerOrderHistory = () => {
             </button>
             <div>
               <h1 className="text-xl font-bold">Order History</h1>
-              <p className="text-sm text-gray-600">Table {tableNumber}</p>
+              {isCustomerAuthenticated ? (
+                <p className="text-sm text-gray-600">All your orders</p>
+              ) : (
+                <p className="text-sm text-gray-600">Table {tableNumber}</p>
+              )}
             </div>
           </div>
         </div>
       </header>
 
       <main className="container mx-auto px-4 py-6 max-w-4xl">
-        {/* Debug Info - Remove in production */}
-        {process.env.NODE_ENV === 'development' && orderHistory && (
-          <div className="bg-gray-100 p-4 rounded-lg mb-4 text-sm">
-            <p><strong>Debug Info:</strong></p>
-            <p>Restaurant ID: {restaurantId}</p>
-            <p>Table Number: {tableNumber}</p>
-            <p>Session ID: {restaurantId}-{tableNumber}</p>
-            <p>Orders Found: {orderHistory?.orderHistory?.length || 0}</p>
-            <p>Total Points: {orderHistory?.totalPoints || 0}</p>
-            {orderHistory.debug && (
-              <>
-                <p>Backend Debug - All Orders: {orderHistory.debug.allOrdersCount}</p>
-                <p>Backend Debug - Matching Orders: {orderHistory.debug.matchingOrdersCount}</p>
-              </>
-            )}
-          </div>
-        )}
+
 
         {/* Total Feedback Points Card */}
         <div className="bg-gradient-to-r from-green-500 to-green-600 text-white rounded-xl p-6 mb-6 shadow-lg">
@@ -143,6 +160,12 @@ const CustomerOrderHistory = () => {
                         </p>
                         <p className="text-sm text-gray-600">
                           {new Date(order.orderDate).toLocaleTimeString()} • ₹{order.totalAmount?.toFixed(2)}
+                          {isCustomerAuthenticated && order.restaurantName && (
+                            <> • {order.restaurantName}</>
+                          )}
+                          {!isCustomerAuthenticated && (
+                            <> • Table {order.tableNumber}</>
+                          )}
                         </p>
                         <div className="flex items-center gap-2 mt-1">
                           <span className={`px-2 py-1 rounded-full text-xs font-medium ${
@@ -246,7 +269,10 @@ const CustomerOrderHistory = () => {
             <ShoppingBag className="w-16 h-16 text-gray-400 mx-auto mb-4" />
             <h3 className="text-xl font-semibold text-gray-900 mb-2">No Orders Yet</h3>
             <p className="text-gray-600 mb-6">
-              You haven't placed any orders from this table yet.
+              {isCustomerAuthenticated 
+                ? "You haven't placed any orders yet."
+                : "You haven't placed any orders from this table yet."
+              }
             </p>
             <button
               onClick={() => navigate(`/m/${restaurantId}`)}

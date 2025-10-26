@@ -15,7 +15,7 @@ export const apiLimiter = rateLimit({
 // Strict rate limiter for authentication endpoints
 export const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5, // Limit each IP to 5 login attempts per windowMs
+  max: 10, // Limit each IP to 10 login attempts per 15 minutes (increased from 5)
   message: {
     message: "Too many login attempts, please try again after 15 minutes",
     code: "AUTH_RATE_LIMIT_EXCEEDED",
@@ -27,12 +27,14 @@ export const authLimiter = rateLimit({
 
 // Registration rate limiter
 export const registerLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000, // 1 hour
-  max: 3, // Limit each IP to 3 registration attempts per hour
+  windowMs: 15 * 60 * 1000, // 15 minutes (reduced from 1 hour)
+  max: 10, // Limit each IP to 10 registration attempts per 15 minutes (increased from 3)
   message: {
-    message: "Too many registration attempts, please try again later",
+    message:
+      "Too many registration attempts, please try again after 15 minutes",
     code: "REGISTER_RATE_LIMIT_EXCEEDED",
   },
+  skipSuccessfulRequests: true, // Don't count successful registrations
   standardHeaders: true,
   legacyHeaders: false,
 });

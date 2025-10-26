@@ -42,7 +42,7 @@ const CheckoutPage = () => {
       setTableNumber(savedTable);
       fetchRestaurantInfo();
     }
-  }, [restaurantId, navigate, user, authLoading]);
+  }, [restaurantId, navigate, isCustomerAuthenticated, authLoading]);
 
   const fetchRestaurantInfo = async () => {
     try {

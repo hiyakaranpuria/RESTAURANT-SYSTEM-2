@@ -4,6 +4,7 @@ import { CartProvider } from "./context/CartContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 
 // Home Page
+import LandingPage from "./pages/LandingPage";
 import HomePage from "./pages/HomePage";
 
 // Customer Pages
@@ -111,7 +112,9 @@ function App() {
               }
             />
 
-            <Route path="/" element={<HomePage />} />
+            {/* Home Routes */}
+            <Route path="/" element={<LandingPage />} />
+            <Route path="/home" element={<HomePage />} />
           </Routes>
         </BrowserRouter>
       </CartProvider>

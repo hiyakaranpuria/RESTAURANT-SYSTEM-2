@@ -5,7 +5,7 @@ import axios from "axios";
 
 const UserSignupPage = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { isCustomerAuthenticated, getCustomerSession } = useAuth();
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -21,16 +21,18 @@ const UserSignupPage = () => {
 
   // Redirect if already logged in
   useEffect(() => {
-    if (user) {
-      if (user.role === "admin") {
+    if (isCustomerAuthenticated) {
+      const session = getCustomerSession();
+      const user = session?.user;
+      if (user?.role === "admin") {
         navigate("/admin/restaurants");
-      } else if (user.role === "staff") {
+      } else if (user?.role === "staff") {
         navigate("/staff/orders");
       } else {
         navigate("/dashboard");
       }
     }
-  }, [user, navigate]);
+  }, [isCustomerAuthenticated, navigate, getCustomerSession]);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;

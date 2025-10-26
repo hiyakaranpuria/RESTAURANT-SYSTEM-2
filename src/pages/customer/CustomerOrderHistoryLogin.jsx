@@ -10,6 +10,10 @@ const CustomerOrderHistoryLogin = () => {
   const [loading, setLoading] = useState(true);
   const [orderHistory, setOrderHistory] = useState(null);
   const [customerEmail, setCustomerEmail] = useState("");
+  
+  // Get the restaurant ID from query params if user came from a specific menu
+  const urlParams = new URLSearchParams(window.location.search);
+  const fromRestaurantId = urlParams.get('from');
 
   useEffect(() => {
     const customerSession = getCustomerSession();
@@ -70,7 +74,7 @@ const CustomerOrderHistoryLogin = () => {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center gap-3">
             <button
-              onClick={() => navigate('/dashboard')}
+              onClick={() => navigate(fromRestaurantId ? `/m/${fromRestaurantId}` : '/dashboard')}
               className="text-gray-600 hover:text-gray-900"
             >
               <ArrowLeft className="w-6 h-6" />
@@ -252,10 +256,10 @@ const CustomerOrderHistoryLogin = () => {
               You haven't placed any orders yet. Start exploring restaurants!
             </p>
             <button
-              onClick={() => navigate('/dashboard')}
+              onClick={() => navigate(fromRestaurantId ? `/m/${fromRestaurantId}` : '/dashboard')}
               className="bg-green-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors"
             >
-              Explore Restaurants
+              {fromRestaurantId ? 'Back to Menu' : 'Explore Restaurants'}
             </button>
           </div>
         )}

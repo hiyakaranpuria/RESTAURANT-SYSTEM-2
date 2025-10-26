@@ -13,6 +13,7 @@ import CartPage from "./pages/customer/CartPage";
 import OrderStatusPage from "./pages/customer/OrderStatusPage";
 import CustomerDashboard from "./pages/customer/CustomerDashboard";
 import CheckoutPage from "./pages/customer/CheckoutPage";
+import BillSummaryPage from "./pages/customer/BillSummaryPage";
 import CustomerOrderHistory from "./pages/customer/CustomerOrderHistory";
 import CustomerOrderHistoryLogin from "./pages/customer/CustomerOrderHistoryLogin";
 import MigrationTest from "./pages/MigrationTest";
@@ -51,6 +52,7 @@ function App() {
             {/* Customer Routes */}
             <Route path="/m/:restaurantId" element={<MenuPage />} />
             <Route path="/checkout/:restaurantId" element={<CheckoutPage />} />
+            <Route path="/bill-summary/:restaurantId" element={<BillSummaryPage />} />
             <Route path="/customer/history/:restaurantId" element={<CustomerOrderHistory />} />
             <Route path="/customer/orders" element={<CustomerOrderHistoryLogin />} />
             <Route path="/migration-test" element={<MigrationTest />} />

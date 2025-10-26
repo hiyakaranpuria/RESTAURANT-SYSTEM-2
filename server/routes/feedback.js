@@ -473,4 +473,52 @@ router.get("/customer/:sessionId/orders", async (req, res) => {
   }
 });
 
+// Redeem points endpoint
+router.post("/redeem-points", async (req, res) => {
+  try {
+    const { email, pointsToRedeem } = req.body;
+
+    if (!email || !pointsToRedeem || pointsToRedeem <= 0) {
+      return res.status(400).json({ 
+        error: "Email and valid points amount are required" 
+      });
+    }
+
+    // Find customer by email
+    const customer = await Customer.findOne({ email });
+    if (!customer) {
+      return res.status(404).json({ 
+        error: "Customer not found" 
+      });
+    }
+
+    // Check if customer has enough points
+    if (customer.totalFeedbackPoints < pointsToRedeem) {
+      return res.status(400).json({ 
+        error: "Insufficient points",
+        availablePoints: customer.totalFeedbackPoints,
+        requestedPoints: pointsToRedeem
+      });
+    }
+
+    // Deduct points
+    customer.totalFeedbackPoints -= pointsToRedeem;
+    await customer.save();
+
+    res.json({
+      success: true,
+      message: "Points redeemed successfully",
+      pointsRedeemed: pointsToRedeem,
+      remainingPoints: customer.totalFeedbackPoints
+    });
+
+  } catch (error) {
+    console.error("Error redeeming points:", error);
+    res.status(500).json({ 
+      error: "Failed to redeem points",
+      details: error.message 
+    });
+  }
+});
+
 export default router;

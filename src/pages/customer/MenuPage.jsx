@@ -402,7 +402,7 @@ const MenuPage = () => {
                   const customerSession = getCustomerSession();
                   if (customerSession.isAuthenticated) {
                     // Logged in customer - show all their orders across restaurants
-                    navigate('/customer/orders');
+                    navigate(`/customer/orders?from=${restaurantId}`);
                   } else {
                     // Guest customer - show orders for this table/restaurant
                     navigate(`/customer/history/${restaurantId}`);

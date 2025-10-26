@@ -38,6 +38,9 @@ const orderSchema = new mongoose.Schema(
     ],
     specialInstructions: { type: String },
     totalAmount: { type: Number, required: true },
+    originalAmount: { type: Number }, // Amount before discount
+    pointsRedeemed: { type: Number, default: 0 }, // Points used for discount
+    discountAmount: { type: Number, default: 0 }, // Discount applied
     status: {
       type: String,
       enum: ["placed", "preparing", "ready", "delivered", "cancelled"],

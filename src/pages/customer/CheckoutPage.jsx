@@ -248,16 +248,18 @@ const CheckoutPage = () => {
           />
         </div>
 
-        {/* Place Order Button */}
+        {/* Proceed to Bill Summary Button */}
         <button
-          onClick={handlePlaceOrder}
-          disabled={placing}
-          className="w-full bg-green-600 text-white py-4 rounded-lg font-bold text-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed btn-animate animate-fadeIn"
+          onClick={() => {
+            // Save special instructions to localStorage
+            localStorage.setItem(`instructions_${restaurantId}`, specialInstructions);
+            // Navigate to bill summary page
+            navigate(`/bill-summary/${restaurantId}`);
+          }}
+          className="w-full bg-green-600 text-white py-4 rounded-lg font-bold text-lg hover:bg-green-700 btn-animate animate-fadeIn"
           style={{ animationDelay: "0.3s" }}
         >
-          {placing
-            ? "Placing Order..."
-            : `Place Order - ₹${getTotalPrice().toFixed(2)}`}
+          Proceed to Checkout - ₹{getTotalPrice().toFixed(2)}
         </button>
 
         <p className="text-center text-sm text-gray-500 mt-4">

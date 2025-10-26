@@ -43,8 +43,22 @@ router.post(
         items,
         specialInstructions,
         totalAmount,
+        originalAmount,
+        pointsRedeemed,
+        discountAmount,
         customerInfo, // { email, name, phone, userId }
       } = req.body;
+
+      console.log("Extracted order data:", {
+        restaurantId,
+        tableNumber,
+        itemsCount: items?.length,
+        totalAmount,
+        originalAmount,
+        pointsRedeemed,
+        discountAmount,
+        hasCustomerInfo: !!customerInfo
+      });
 
       const orderData = {
         restaurantId,
@@ -52,8 +66,13 @@ router.post(
         items,
         specialInstructions,
         totalAmount,
+        originalAmount: originalAmount || totalAmount,
+        pointsRedeemed: pointsRedeemed || 0,
+        discountAmount: discountAmount || 0,
         status: "placed",
       };
+
+      console.log("Final order data to save:", orderData);
 
       // Add customer information if provided
       if (customerInfo) {

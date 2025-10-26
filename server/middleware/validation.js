@@ -147,7 +147,7 @@ export const validateOrderCreation = (req, res, next) => {
     });
   }
 
-  if (!totalAmount || totalAmount <= 0) {
+  if (totalAmount === undefined || totalAmount === null || totalAmount < 0) {
     return res.status(400).json({
       message: "Invalid total amount",
       code: "INVALID_AMOUNT",

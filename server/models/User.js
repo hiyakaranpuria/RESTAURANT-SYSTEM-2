@@ -12,6 +12,8 @@ const userSchema = new mongoose.Schema(
       default: "customer",
     },
     marketingConsent: { type: Boolean, default: false },
+    resetPasswordToken: { type: String },
+    resetPasswordExpires: { type: Date },
   },
   { timestamps: true }
 );

@@ -8,18 +8,23 @@ import { useAuth } from "../../context/MultiAuthContext";
 
 const RestaurantDashboard = () => {
   const navigate = useNavigate();
-  const { isRestaurantAuthenticated, getRestaurantSession, getToken } =
-    useAuth();
+  const {
+    isRestaurantAuthenticated,
+    getRestaurantSession,
+    getToken,
+    loading: authLoading,
+  } = useAuth();
 
   // Use session management hook
   useSessionManagement();
 
-  // Check restaurant authentication
+  // Check restaurant authentication - only after loading is complete
   useEffect(() => {
-    if (!isRestaurantAuthenticated) {
+    if (!authLoading && !isRestaurantAuthenticated) {
+      console.log("[Dashboard] Not authenticated, redirecting to login");
       navigate("/restaurant/login");
     }
-  }, [isRestaurantAuthenticated, navigate]);
+  }, [authLoading, isRestaurantAuthenticated, navigate]);
   const [categories, setCategories] = useState([]);
   const [items, setItems] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState("all");

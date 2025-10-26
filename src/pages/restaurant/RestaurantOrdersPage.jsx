@@ -1,36 +1,59 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import { useAuth } from "../../context/MultiAuthContext";
 
 const RestaurantOrdersPage = () => {
   const navigate = useNavigate();
+  const {
+    isRestaurantAuthenticated,
+    getToken,
+    loading: authLoading,
+  } = useAuth();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [showWaitTimeModal, setShowWaitTimeModal] = useState(false);
   const [waitTime, setWaitTime] = useState("");
 
+  // Check restaurant authentication - only after loading is complete
   useEffect(() => {
-    // Set axios authorization header
-    const token = localStorage.getItem("token");
+    if (!authLoading && !isRestaurantAuthenticated) {
+      console.log("[Orders] Not authenticated, redirecting to login");
+      navigate("/restaurant/login");
+    }
+  }, [authLoading, isRestaurantAuthenticated, navigate]);
+
+  useEffect(() => {
+    // Set axios authorization header - use restaurant token
+    const token = getToken("restaurant");
     if (token) {
       axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+      console.log("[Orders] Set restaurant token for API calls");
+    } else {
+      console.error("[Orders] No restaurant token found!");
     }
 
-    fetchOrders();
-    // Auto-refresh every 10 seconds
-    const interval = setInterval(fetchOrders, 10000);
-    return () => clearInterval(interval);
-  }, []);
+    if (isRestaurantAuthenticated) {
+      fetchOrders();
+      // Auto-refresh every 10 seconds
+      const interval = setInterval(fetchOrders, 10000);
+      return () => clearInterval(interval);
+    }
+  }, [isRestaurantAuthenticated]);
 
   const fetchOrders = async () => {
     try {
+      console.log("[Orders] Fetching orders...");
       const { data } = await axios.get(
         "/api/orders?status=placed,preparing,ready"
       );
+      console.log("[Orders] Received orders:", data);
       setOrders(data);
     } catch (error) {
-      console.error("Error fetching orders:", error);
+      console.error("[Orders] Error fetching orders:", error);
+      console.error("[Orders] Error response:", error.response?.data);
+      console.error("[Orders] Error status:", error.response?.status);
     } finally {
       setLoading(false);
     }

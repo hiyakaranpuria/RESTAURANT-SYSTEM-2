@@ -112,12 +112,18 @@ export const AuthProvider = ({ children }) => {
 
   const initializeAllSessions = async () => {
     try {
+      console.log("[MultiAuth] Initializing sessions...");
       const newSessions = { ...sessions };
+      let foundActiveSession = null;
 
       // Check each session type
       for (const type of Object.keys(STORAGE_KEYS)) {
         const token = localStorage.getItem(STORAGE_KEYS[type].token);
         const timestamp = localStorage.getItem(STORAGE_KEYS[type].timestamp);
+
+        console.log(`[MultiAuth] Checking ${type} session:`, {
+          hasToken: !!token,
+        });
 
         if (token) {
           // Check if token is too old
@@ -126,7 +132,7 @@ export const AuthProvider = ({ children }) => {
             const sevenDays = 7 * 24 * 60 * 60 * 1000;
 
             if (tokenAge > sevenDays) {
-              console.log(`${type} token expired, clearing...`);
+              console.log(`[MultiAuth] ${type} token expired, clearing...`);
               clearSession(type);
               continue;
             }
@@ -134,23 +140,38 @@ export const AuthProvider = ({ children }) => {
 
           // Try to fetch user data
           try {
+            console.log(`[MultiAuth] Fetching ${type} user data...`);
             const userData = await fetchUserData(type, token);
             if (userData) {
+              console.log(`[MultiAuth] ${type} session restored:`, userData);
               newSessions[type] = {
                 user: userData,
                 isAuthenticated: true,
               };
+              // Set the first found session as active
+              if (!foundActiveSession) {
+                foundActiveSession = type;
+              }
             }
           } catch (error) {
-            console.error(`Failed to fetch ${type} user:`, error);
+            console.error(`[MultiAuth] Failed to fetch ${type} user:`, error);
             clearSession(type);
           }
         }
       }
 
+      console.log("[MultiAuth] Final sessions:", newSessions);
       setSessions(newSessions);
+
+      // Set current session type if we found an active session
+      if (foundActiveSession) {
+        console.log(
+          `[MultiAuth] Setting current session to: ${foundActiveSession}`
+        );
+        setCurrentSessionType(foundActiveSession);
+      }
     } catch (error) {
-      console.error("Session initialization error:", error);
+      console.error("[MultiAuth] Session initialization error:", error);
     } finally {
       setLoading(false);
     }
@@ -161,15 +182,23 @@ export const AuthProvider = ({ children }) => {
       const endpoint =
         type === "restaurant" ? "/api/restaurant/me" : "/api/auth/me";
 
+      console.log(`[MultiAuth] Fetching from ${endpoint} with token`);
+
       const { data } = await axios.get(endpoint, {
         headers: { Authorization: `Bearer ${token}` },
       });
+
+      console.log(`[MultiAuth] Received data for ${type}:`, data);
 
       // Handle different response formats
       if (data.user) return data.user;
       if (data.restaurant) return data.restaurant;
       return data;
     } catch (error) {
+      console.error(
+        `[MultiAuth] Error fetching ${type} data:`,
+        error.response?.data || error.message
+      );
       throw error;
     }
   };
@@ -320,9 +349,23 @@ export const AuthProvider = ({ children }) => {
       const token = getToken(currentSessionType);
       if (token) {
         axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+        console.log(`[MultiAuth] Set axios header for ${currentSessionType}`);
+      }
+    } else {
+      // If no current session, try to find an active one
+      const activeType = Object.keys(sessions).find(
+        (type) => sessions[type].isAuthenticated
+      );
+      if (activeType) {
+        const token = getToken(activeType);
+        if (token) {
+          setCurrentSessionType(activeType);
+          axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+          console.log(`[MultiAuth] Auto-set axios header for ${activeType}`);
+        }
       }
     }
-  }, [currentSessionType]);
+  }, [currentSessionType, sessions]);
 
   const currentSession = getCurrentSession();
 

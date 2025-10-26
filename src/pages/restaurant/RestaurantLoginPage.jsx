@@ -98,6 +98,15 @@ const RestaurantLoginPageContent = () => {
 
           {error && <p className="text-red-500 text-sm text-center">{error}</p>}
 
+          <div className="flex justify-end">
+            <Link
+              to="/restaurant/forgot-password"
+              className="text-sm text-primary font-medium hover:underline"
+            >
+              Forgot your password?
+            </Link>
+          </div>
+
           <button
             type="submit"
             disabled={loading}

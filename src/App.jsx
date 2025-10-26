@@ -18,10 +18,14 @@ import CheckoutPage from "./pages/customer/CheckoutPage";
 import LoginPage from "./pages/auth/LoginPage";
 import UserSignupPage from "./pages/auth/UserSignupPage";
 import AdminLoginPage from "./pages/auth/AdminLoginPage";
+import ForgotPasswordPage from "./pages/auth/ForgotPasswordPage";
+import ResetPasswordPage from "./pages/auth/ResetPasswordPage";
 
 // Restaurant Pages
 import RestaurantSignupPage from "./pages/restaurant/RestaurantSignupPage";
 import RestaurantLoginPage from "./pages/restaurant/RestaurantLoginPage";
+import RestaurantForgotPasswordPage from "./pages/restaurant/RestaurantForgotPasswordPage";
+import RestaurantResetPasswordPage from "./pages/restaurant/RestaurantResetPasswordPage";
 import RestaurantSuccessPage from "./pages/restaurant/RestaurantSuccessPage";
 import RestaurantPendingPage from "./pages/restaurant/RestaurantPendingPage";
 import RestaurantDashboard from "./pages/restaurant/RestaurantDashboard";
@@ -52,6 +56,8 @@ function App() {
             <Route path="/login" element={<LoginPage />} />
             <Route path="/signup" element={<UserSignupPage />} />
             <Route path="/admin/login" element={<AdminLoginPage />} />
+            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+            <Route path="/reset-password" element={<ResetPasswordPage />} />
 
             {/* Restaurant Routes */}
             <Route
@@ -59,6 +65,14 @@ function App() {
               element={<RestaurantSignupPage />}
             />
             <Route path="/restaurant/login" element={<RestaurantLoginPage />} />
+            <Route
+              path="/restaurant/forgot-password"
+              element={<RestaurantForgotPasswordPage />}
+            />
+            <Route
+              path="/restaurant/reset-password"
+              element={<RestaurantResetPasswordPage />}
+            />
             <Route
               path="/restaurant/success"
               element={<RestaurantSuccessPage />}

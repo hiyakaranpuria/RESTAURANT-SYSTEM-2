@@ -112,12 +112,12 @@ const LoginPageContent = () => {
           {error && <p className="text-red-500 text-sm text-center">{error}</p>}
 
           <div className="text-right">
-            <a
+            <Link
+              to="/forgot-password"
               className="text-primary text-sm font-medium hover:underline"
-              href="#"
             >
               Forgot your password?
-            </a>
+            </Link>
           </div>
 
           <button

@@ -9,6 +9,7 @@ import {
   validateLogin,
   sanitizeInput,
 } from "../middleware/validation.js";
+import { sendPasswordResetEmail } from "../services/emailService.js";
 
 const router = express.Router();
 
@@ -192,3 +193,173 @@ router.post("/refresh", authenticate, async (req, res) => {
 });
 
 export default router;
+
+// Forgot Password - Send reset email
+router.post("/forgot-password", sanitizeInput, async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({
+        message: "Email is required",
+        code: "EMAIL_REQUIRED",
+      });
+    }
+
+    const user = await User.findOne({ email });
+
+    // Don't reveal if email exists (security best practice)
+    if (!user) {
+      return res.json({
+        message:
+          "If an account exists with this email, you will receive a password reset code",
+        code: "RESET_EMAIL_SENT",
+      });
+    }
+
+    // Generate reset token (6-digit code for simplicity)
+    const resetToken = Math.floor(100000 + Math.random() * 900000).toString();
+
+    // Hash the token before storing
+    const hashedToken = await bcrypt.hash(resetToken, 10);
+
+    // Save token and expiry (1 hour from now)
+    user.resetPasswordToken = hashedToken;
+    user.resetPasswordExpires = Date.now() + 3600000; // 1 hour
+    await user.save();
+
+    // Send email with reset code
+    try {
+      await sendPasswordResetEmail(email, resetToken, user.name);
+    } catch (emailError) {
+      console.error("Failed to send email:", emailError);
+      // Continue anyway - don't reveal email sending failure
+    }
+
+    res.json({
+      message:
+        "If an account exists with this email, you will receive a password reset code",
+      code: "RESET_EMAIL_SENT",
+      // For development only - remove in production!
+      devToken: process.env.NODE_ENV === "development" ? resetToken : undefined,
+    });
+  } catch (error) {
+    console.error("Forgot password error:", error);
+    res.status(500).json({
+      message: "Failed to process password reset request",
+      code: "RESET_ERROR",
+    });
+  }
+});
+
+// Reset Password - Verify token and update password
+router.post("/reset-password", sanitizeInput, async (req, res) => {
+  try {
+    const { token, password, email } = req.body;
+
+    if (!token || !password) {
+      return res.status(400).json({
+        message: "Token and password are required",
+        code: "MISSING_FIELDS",
+      });
+    }
+
+    if (password.length < 6) {
+      return res.status(400).json({
+        message: "Password must be at least 6 characters",
+        code: "PASSWORD_TOO_SHORT",
+      });
+    }
+
+    // Find user with valid reset token
+    const user = await User.findOne({
+      email: email,
+      resetPasswordExpires: { $gt: Date.now() },
+    });
+
+    if (!user || !user.resetPasswordToken) {
+      return res.status(400).json({
+        message: "Invalid or expired reset token",
+        code: "INVALID_TOKEN",
+      });
+    }
+
+    // Verify token
+    const isValidToken = await bcrypt.compare(token, user.resetPasswordToken);
+
+    if (!isValidToken) {
+      return res.status(400).json({
+        message: "Invalid or expired reset token",
+        code: "INVALID_TOKEN",
+      });
+    }
+
+    // Update password
+    user.passwordHash = await bcrypt.hash(password, 10);
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpires = undefined;
+    await user.save();
+
+    console.log("\n=================================");
+    console.log("PASSWORD RESET SUCCESSFUL FOR:", user.email);
+    console.log("=================================\n");
+
+    res.json({
+      message:
+        "Password reset successful. You can now login with your new password.",
+      code: "PASSWORD_RESET_SUCCESS",
+    });
+  } catch (error) {
+    console.error("Reset password error:", error);
+    res.status(500).json({
+      message: "Failed to reset password",
+      code: "RESET_ERROR",
+    });
+  }
+});
+
+// Verify Reset Token - Check if token is valid
+router.post("/verify-reset-token", sanitizeInput, async (req, res) => {
+  try {
+    const { token, email } = req.body;
+
+    if (!token || !email) {
+      return res.status(400).json({
+        message: "Token and email are required",
+        code: "MISSING_FIELDS",
+      });
+    }
+
+    const user = await User.findOne({
+      email: email,
+      resetPasswordExpires: { $gt: Date.now() },
+    });
+
+    if (!user || !user.resetPasswordToken) {
+      return res.status(400).json({
+        message: "Invalid or expired reset token",
+        code: "INVALID_TOKEN",
+      });
+    }
+
+    const isValidToken = await bcrypt.compare(token, user.resetPasswordToken);
+
+    if (!isValidToken) {
+      return res.status(400).json({
+        message: "Invalid or expired reset token",
+        code: "INVALID_TOKEN",
+      });
+    }
+
+    res.json({
+      message: "Token is valid",
+      code: "TOKEN_VALID",
+    });
+  } catch (error) {
+    console.error("Verify token error:", error);
+    res.status(500).json({
+      message: "Failed to verify token",
+      code: "VERIFY_ERROR",
+    });
+  }
+});

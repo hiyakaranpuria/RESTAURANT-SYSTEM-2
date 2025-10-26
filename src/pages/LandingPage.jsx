@@ -141,17 +141,13 @@ const LandingPage = () => {
             </div>
 
             <div className="relative h-96 sm:h-[500px] lg:h-[550px]">
-              <div className="absolute inset-0 bg-gradient-to-br from-green-100 via-green-50 to-transparent rounded-3xl border border-green-200 shadow-2xl overflow-hidden">
-                <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-green-50 to-white">
-                  <div className="text-center space-y-4">
-                    <div className="inline-flex items-center justify-center h-20 w-20 rounded-2xl bg-green-100 border border-green-200">
-                      <Smartphone className="h-10 w-10 text-green-600" />
-                    </div>
-                    <p className="text-gray-600 font-medium">
-                      Customer scanning QR code
-                    </p>
-                  </div>
-                </div>
+              <div className="absolute inset-0 rounded-3xl border border-green-200 shadow-2xl overflow-hidden">
+                <img
+                  src="/QR_scanning_img.png"
+                  alt="Customer scanning QR code on phone at restaurant"
+                  className="w-full h-full object-cover"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-green-900/20 to-transparent"></div>
               </div>
             </div>
           </div>

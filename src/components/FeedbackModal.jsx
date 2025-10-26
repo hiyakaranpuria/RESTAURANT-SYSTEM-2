@@ -80,8 +80,8 @@ const FeedbackModal = ({ order, isOpen, onClose, onSubmit }) => {
                   <div className="flex gap-4">
                     <img
                       src={
-                        item.imageUrl
-                          ? `http://localhost:5000${item.imageUrl}`
+                        item.menuItemId?.imageUrl
+                          ? `http://localhost:5000${item.menuItemId.imageUrl}`
                           : "https://via.placeholder.com/80x80?text=No+Image"
                       }
                       alt={item.name}

@@ -195,7 +195,9 @@ router.get("/all-with-feedback", authenticate, requireRestaurant, async (req, re
 // Get single order by ID (public - for customer tracking)
 router.get("/:id", async (req, res) => {
   try {
-    const order = await Order.findById(req.params.id).populate("restaurantId");
+    const order = await Order.findById(req.params.id)
+      .populate("restaurantId")
+      .populate("items.menuItemId", "name imageUrl");
 
     if (!order) {
       return res.status(404).json({ message: "Order not found" });

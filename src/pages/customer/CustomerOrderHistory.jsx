@@ -208,8 +208,8 @@ const CustomerOrderHistory = () => {
                       <div key={itemIndex} className="flex gap-4 p-4 bg-gray-50 rounded-lg">
                         <img
                           src={
-                            item.imageUrl
-                              ? `http://localhost:5000${item.imageUrl}`
+                            item.menuItemId?.imageUrl
+                              ? `http://localhost:5000${item.menuItemId.imageUrl}`
                               : "https://via.placeholder.com/80x80?text=No+Image"
                           }
                           alt={item.name}

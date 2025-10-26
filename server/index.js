@@ -12,6 +12,8 @@ import orderRoutes from "./routes/orders.js";
 import restaurantRoutes from "./routes/restaurant.js";
 import uploadRoutes from "./routes/upload.js";
 import seedRoutes from "./routes/seed.js";
+import feedbackRoutes from "./routes/feedback.js";
+import migrationRoutes from "./routes/migration.js";
 import { apiLimiter } from "./middleware/rateLimiter.js";
 import { sanitizeInput } from "./middleware/validation.js";
 
@@ -67,6 +69,8 @@ app.use("/api/orders", orderRoutes);
 app.use("/api/restaurant", restaurantRoutes);
 app.use("/api/upload", uploadRoutes);
 app.use("/api/seed", seedRoutes);
+app.use("/api/feedback", feedbackRoutes);
+app.use("/api/migration", migrationRoutes);
 
 // Health check endpoint
 app.get("/health", (req, res) => {

@@ -24,6 +24,7 @@ const MenuPage = () => {
   const [showFilters, setShowFilters] = useState(false);
   const [customizingItem, setCustomizingItem] = useState(null);
   const [showCustomerLogin, setShowCustomerLogin] = useState(false);
+  const [customerPoints, setCustomerPoints] = useState(0);
 
   const { isCustomerAuthenticated, getCustomerSession } = useAuth();
 
@@ -35,10 +36,55 @@ const MenuPage = () => {
     if (savedTable && savedRestaurant === restaurantId) {
       setTableNumber(savedTable);
       setShowTableModal(false);
+      fetchCustomerPoints();
     }
 
     fetchMenuData();
   }, [restaurantId]);
+
+  useEffect(() => {
+    if (tableNumber && restaurantId) {
+      fetchCustomerPoints();
+    }
+  }, [tableNumber, restaurantId]);
+
+  // Refresh points when page becomes visible (user returns from other pages)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden && tableNumber && restaurantId) {
+        fetchCustomerPoints();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [tableNumber, restaurantId]);
+
+  const fetchCustomerPoints = async () => {
+    if (restaurantId && tableNumber) {
+      try {
+        const sessionId = `${restaurantId}-${tableNumber}`;
+        const response = await axios.get(`/api/feedback/customer/${sessionId}`);
+        setCustomerPoints(response.data.totalPoints || 0);
+      } catch (error) {
+        console.error("Error fetching customer points:", error);
+      }
+    }
+  };
+
+  const updateCustomerPoints = (newPoints) => {
+    setCustomerPoints(newPoints);
+  };
+
+  // Expose updateCustomerPoints globally for OrderStatusPage
+  useEffect(() => {
+    window.updateCustomerPoints = updateCustomerPoints;
+    return () => {
+      delete window.updateCustomerPoints;
+    };
+  }, []);
 
   const fetchMenuData = async () => {
     try {
@@ -70,6 +116,7 @@ const MenuPage = () => {
       sessionStorage.setItem("tableNumber", tableNumber);
       sessionStorage.setItem("restaurantId", restaurantId);
       setShowTableModal(false);
+      fetchCustomerPoints();
     }
   };
 
@@ -304,13 +351,30 @@ const MenuPage = () => {
               <h1 className="text-xl font-bold">
                 {restaurantInfo?.restaurantName}
               </h1>
-              <p className="text-sm text-gray-600">Table {tableNumber}</p>
+              <div className="flex items-center gap-3">
+                <p className="text-sm text-gray-600">Table {tableNumber}</p>
+                {customerPoints > 0 && (
+                  <div className="flex items-center gap-1 bg-yellow-100 px-2 py-1 rounded-full">
+                    <svg
+                      className="w-4 h-4 text-yellow-600"
+                      fill="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                    </svg>
+                    <span className="text-sm font-semibold text-yellow-700">
+                      {customerPoints} pts
+                    </span>
+                  </div>
+                )}
+              </div>
             </div>
-            <button
-              onClick={() => setShowCart(true)}
-              className="relative bg-green-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-green-700"
-            >
-              <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2">
+              {/* Order History Button */}
+              <button
+                onClick={() => navigate(`/customer/history/${restaurantId}`)}
+                className="bg-blue-500 text-white px-3 py-2 rounded-lg font-medium hover:bg-blue-600 flex items-center gap-2"
+              >
                 <svg
                   className="w-5 h-5"
                   fill="none"
@@ -321,17 +385,40 @@ const MenuPage = () => {
                     strokeLinecap="round"
                     strokeLinejoin="round"
                     strokeWidth={2}
-                    d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"
+                    d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
                   />
                 </svg>
-                <span>Cart</span>
-                {getTotalItems() > 0 && (
-                  <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center">
-                    {getTotalItems()}
-                  </span>
-                )}
-              </div>
-            </button>
+                <span className="hidden sm:inline">History</span>
+              </button>
+
+              {/* Cart Button */}
+              <button
+                onClick={() => setShowCart(true)}
+                className="relative bg-green-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-green-700"
+              >
+                <div className="flex items-center gap-2">
+                  <svg
+                    className="w-5 h-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"
+                    />
+                  </svg>
+                  <span>Cart</span>
+                  {getTotalItems() > 0 && (
+                    <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center">
+                      {getTotalItems()}
+                    </span>
+                  )}
+                </div>
+              </button>
+            </div>
           </div>
         </div>
       </header>
@@ -858,6 +945,8 @@ const MenuPage = () => {
           }}
         />
       )}
+
+
     </div>
   );
 };

@@ -66,6 +66,7 @@ const CheckoutPage = () => {
   const handlePlaceOrder = async () => {
     setPlacing(true);
     try {
+      const customerSession = getCustomerSession();
       const orderData = {
         restaurantId,
         tableNumber,
@@ -77,6 +78,14 @@ const CheckoutPage = () => {
         })),
         specialInstructions,
         totalAmount: getTotalPrice(),
+        customerInfo: customerSession.isAuthenticated
+          ? {
+              userId: customerSession.user._id,
+              email: customerSession.user.email,
+              name: customerSession.user.name,
+              phone: customerSession.user.phone,
+            }
+          : null,
       };
 
       const { data } = await axios.post("/api/orders", orderData);

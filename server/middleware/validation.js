@@ -124,7 +124,7 @@ export const validateRestaurantRegistration = (req, res, next) => {
 };
 
 export const validateOrderCreation = (req, res, next) => {
-  const { restaurantId, tableNumber, items, totalAmount } = req.body;
+  const { restaurantId, tableNumber, items, totalAmount, customerInfo } = req.body;
 
   if (!restaurantId) {
     return res.status(400).json({

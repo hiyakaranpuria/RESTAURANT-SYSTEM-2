@@ -41,6 +41,28 @@ const MenuManagementPage = () => {
     }
   };
 
+  const runMigration = async () => {
+    if (!confirm("This will update all existing orders to include customer information. Continue?")) {
+      return;
+    }
+
+    try {
+      // First test if the endpoint is available
+      console.log("Testing migration endpoint...");
+      const testResponse = await axios.get("/api/migration/test");
+      console.log("Test response:", testResponse.data);
+
+      // Run the actual migration
+      console.log("Running migration...");
+      const response = await axios.post("/api/migration/update-orders-simple");
+      console.log("Migration response:", response.data);
+      alert(`Migration completed! Updated ${response.data.ordersUpdated} orders.`);
+    } catch (error) {
+      console.error("Migration error:", error);
+      alert("Migration failed: " + (error.response?.data?.message || error.message));
+    }
+  };
+
   const filteredItems = items.filter(
     (item) => item.categoryId === selectedCategory
   );
@@ -94,6 +116,12 @@ const MenuManagementPage = () => {
       <main className="flex-1 p-8 bg-[#F8F9FA]">
         <div className="flex justify-between items-center mb-8">
           <p className="text-4xl font-black">Menu Management</p>
+          <button
+            onClick={runMigration}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-semibold"
+          >
+            Run Order Migration
+          </button>
         </div>
 
         <div className="flex justify-between items-center border-b pb-4 mb-6">

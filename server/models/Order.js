@@ -7,6 +7,15 @@ const orderSchema = new mongoose.Schema(
       ref: "Restaurant",
       required: true,
     },
+    customerId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: false, // Optional for guest orders
+    },
+    customerEmail: {
+      type: String,
+      required: false, // For guest orders or logged-in customers
+    },
     tableNumber: {
       type: String,
       required: true,
@@ -20,6 +29,11 @@ const orderSchema = new mongoose.Schema(
         name: { type: String, required: true },
         price: { type: Number, required: true },
         quantity: { type: Number, required: true },
+        feedback: {
+          rating: { type: Number, min: 1, max: 5 },
+          description: { type: String },
+          submittedAt: { type: Date }
+        }
       },
     ],
     specialInstructions: { type: String },
@@ -31,6 +45,11 @@ const orderSchema = new mongoose.Schema(
     },
     estimatedWaitTime: { type: Number }, // in minutes
     estimatedReadyTime: { type: Date },
+    feedback: {
+      submitted: { type: Boolean, default: false },
+      submittedAt: { type: Date },
+      totalPoints: { type: Number, default: 0 }
+    }
   },
   { timestamps: true }
 );

@@ -13,6 +13,9 @@ import CartPage from "./pages/customer/CartPage";
 import OrderStatusPage from "./pages/customer/OrderStatusPage";
 import CustomerDashboard from "./pages/customer/CustomerDashboard";
 import CheckoutPage from "./pages/customer/CheckoutPage";
+import CustomerOrderHistory from "./pages/customer/CustomerOrderHistory";
+import CustomerOrderHistoryLogin from "./pages/customer/CustomerOrderHistoryLogin";
+import MigrationTest from "./pages/MigrationTest";
 
 // Auth Pages
 import LoginPage from "./pages/auth/LoginPage";
@@ -48,6 +51,9 @@ function App() {
             {/* Customer Routes */}
             <Route path="/m/:restaurantId" element={<MenuPage />} />
             <Route path="/checkout/:restaurantId" element={<CheckoutPage />} />
+            <Route path="/customer/history/:restaurantId" element={<CustomerOrderHistory />} />
+            <Route path="/customer/orders" element={<CustomerOrderHistoryLogin />} />
+            <Route path="/migration-test" element={<MigrationTest />} />
             <Route path="/cart" element={<CartPage />} />
             <Route path="/order/:orderId" element={<OrderStatusPage />} />
             <Route path="/dashboard" element={<CustomerDashboard />} />

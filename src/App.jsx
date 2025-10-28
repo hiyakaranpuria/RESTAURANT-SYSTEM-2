@@ -14,6 +14,7 @@ import OrderStatusPage from "./pages/customer/OrderStatusPage";
 import CustomerDashboard from "./pages/customer/CustomerDashboard";
 import CheckoutPage from "./pages/customer/CheckoutPage";
 import BillSummaryPage from "./pages/customer/BillSummaryPage";
+import QRMenuPage from "./pages/customer/QRMenuPage";
 import CustomerOrderHistory from "./pages/customer/CustomerOrderHistory";
 import CustomerOrderHistoryLogin from "./pages/customer/CustomerOrderHistoryLogin";
 import MigrationTest from "./pages/MigrationTest";
@@ -34,6 +35,8 @@ import RestaurantSuccessPage from "./pages/restaurant/RestaurantSuccessPage";
 import RestaurantPendingPage from "./pages/restaurant/RestaurantPendingPage";
 import RestaurantDashboard from "./pages/restaurant/RestaurantDashboard";
 import RestaurantOrdersPage from "./pages/restaurant/RestaurantOrdersPage";
+import QRManagementPage from "./pages/restaurant/QRManagementPage";
+import QRGenerationPage from "./pages/restaurant/QRGenerationPage";
 
 // Staff Pages
 import OrderQueuePage from "./pages/staff/OrderQueuePage";
@@ -51,6 +54,7 @@ function App() {
           <Routes>
             {/* Customer Routes */}
             <Route path="/m/:restaurantId" element={<MenuPage />} />
+            <Route path="/t/:qrSlug" element={<QRMenuPage />} />
             <Route path="/checkout/:restaurantId" element={<CheckoutPage />} />
             <Route path="/bill-summary/:restaurantId" element={<BillSummaryPage />} />
             <Route path="/customer/history/:restaurantId" element={<CustomerOrderHistory />} />
@@ -96,6 +100,14 @@ function App() {
             <Route
               path="/restaurant/orders"
               element={<RestaurantOrdersPage />}
+            />
+            <Route
+              path="/restaurant/qr-codes"
+              element={<QRManagementPage />}
+            />
+            <Route
+              path="/restaurant/generate-qr"
+              element={<QRGenerationPage />}
             />
 
             {/* Staff Routes */}

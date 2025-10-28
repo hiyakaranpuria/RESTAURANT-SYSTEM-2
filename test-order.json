@@ -1,0 +1,18 @@
+{
+  "restaurantId": "68fe544f5003ce90186aac7f",
+  "tableNumber": "2",
+  "items": [
+    {
+      "menuItemId": "6900d719e5612aa4347d349a",
+      "name": "DAHI BHALLE",
+      "price": 350,
+      "quantity": 1
+    }
+  ],
+  "specialInstructions": "Test order",
+  "totalAmount": 350,
+  "originalAmount": 350,
+  "pointsRedeemed": 0,
+  "discountAmount": 0,
+  "customerInfo": null
+}

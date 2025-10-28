@@ -168,6 +168,9 @@ router.get("/all-with-feedback", authenticate, requireRestaurant, async (req, re
       tableNumber: order.tableNumber,
       customerEmail: order.customerEmail,
       totalAmount: order.totalAmount,
+      originalAmount: order.originalAmount,
+      pointsRedeemed: order.pointsRedeemed || 0,
+      discountAmount: order.discountAmount || 0,
       specialInstructions: order.specialInstructions,
       feedbackSubmitted: order.feedback?.submitted || false,
       totalFeedbackPoints: order.feedback?.totalPoints || 0,
@@ -207,6 +210,34 @@ router.get("/all-with-feedback", authenticate, requireRestaurant, async (req, re
       }
     });
   } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Get active orders for a customer/table (public - for cart display)
+router.get("/active", async (req, res) => {
+  try {
+    const { restaurantId, tableNumber, customerEmail } = req.query;
+
+    if (!restaurantId || !tableNumber || !customerEmail) {
+      return res.status(400).json({ message: "Missing required parameters" });
+    }
+
+    // Find orders that are still active (not delivered or completed)
+    const activeStatuses = ["placed", "confirmed", "preparing", "ready"];
+    
+    const orders = await Order.find({
+      restaurantId,
+      tableNumber,
+      customerEmail,
+      status: { $in: activeStatuses }
+    })
+    .populate("restaurantId", "restaurantName")
+    .sort("-createdAt");
+
+    res.json(orders);
+  } catch (error) {
+    console.error("Error fetching active orders:", error);
     res.status(500).json({ message: error.message });
   }
 });

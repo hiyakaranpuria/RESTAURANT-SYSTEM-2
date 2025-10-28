@@ -139,8 +139,11 @@ const BillSummaryPage = () => {
       };
 
       console.log("Placing order with data:", orderData);
+      console.log("Making POST request to:", "/api/orders");
+      console.log("Full URL would be:", `${window.location.origin}/api/orders`);
 
-      const { data } = await axios.post("/api/orders", orderData);
+      // Try direct backend URL first for debugging
+      const { data } = await axios.post("http://localhost:5000/api/orders", orderData);
       console.log("Order placed successfully:", data);
 
       // If points were redeemed, update customer points

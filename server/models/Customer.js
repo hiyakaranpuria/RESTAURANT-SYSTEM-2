@@ -7,6 +7,11 @@ const customerSchema = new mongoose.Schema(
       ref: "User",
       required: false, // Optional for guest customers
     },
+    sessionId: {
+      type: String,
+      required: false, // Optional - only for guest customers
+      sparse: true, // Allows multiple null values
+    },
     email: {
       type: String,
       required: true,

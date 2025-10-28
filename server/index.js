@@ -67,6 +67,7 @@ app.use("/api/menu", menuRoutes);
 app.use("/api/tables", tableRoutes);
 app.use("/api/orders", orderRoutes);
 app.use("/api/restaurant", restaurantRoutes);
+app.use("/api/restaurant", tableRoutes);
 app.use("/api/upload", uploadRoutes);
 app.use("/api/seed", seedRoutes);
 app.use("/api/feedback", feedbackRoutes);

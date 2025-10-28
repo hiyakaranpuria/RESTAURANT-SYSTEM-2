@@ -1,22 +1,26 @@
 # Enhanced Cart System with Active Orders ✅
 
 ## Feature Overview
+
 Implemented a comprehensive cart system that shows both **active orders in progress** and **new items being added**, creating a restaurant-like experience where customers can track their current orders while placing new ones.
 
 ## 🎯 Key Features
 
 ### **1. Active Orders Display**
+
 - Shows orders that are currently **placed**, **confirmed**, **preparing**, or **ready**
 - Real-time status updates with color-coded badges
 - Order tracking with direct links to order status page
 - Displays order time, items, and total amount
 
 ### **2. New Cart Items**
+
 - Separate section for items being added to a new order
 - Full cart functionality (add, remove, modify quantities)
 - Clear distinction between active orders and new items
 
 ### **3. Persistent Order Tracking**
+
 - Orders remain visible until **delivered** or **completed**
 - Refreshes automatically when page becomes visible
 - Works for both logged-in users and guests
@@ -24,44 +28,49 @@ Implemented a comprehensive cart system that shows both **active orders in progr
 ## 🔧 Technical Implementation
 
 ### **Backend API Endpoint**
+
 ```javascript
 // GET /api/orders/active
 router.get("/active", async (req, res) => {
   const { restaurantId, tableNumber, customerEmail } = req.query;
-  
+
   // Find orders that are still active
   const activeStatuses = ["placed", "confirmed", "preparing", "ready"];
-  
+
   const orders = await Order.find({
     restaurantId,
     tableNumber,
     customerEmail,
-    status: { $in: activeStatuses }
-  }).populate("restaurantId", "restaurantName").sort("-createdAt");
-  
+    status: { $in: activeStatuses },
+  })
+    .populate("restaurantId", "restaurantName")
+    .sort("-createdAt");
+
   res.json(orders);
 });
 ```
 
 ### **Frontend State Management**
+
 ```javascript
 const [activeOrders, setActiveOrders] = useState([]);
 
 const fetchActiveOrders = async () => {
   // Fetch orders based on customer type (logged in vs guest)
-  const customerIdentifier = isAuthenticated 
-    ? customerSession.user.email 
+  const customerIdentifier = isAuthenticated
+    ? customerSession.user.email
     : `guest-${restaurantId}-${tableNumber}@temp.com`;
-    
+
   const response = await axios.get(`/api/orders/active`, {
-    params: { restaurantId, tableNumber, customerEmail: customerIdentifier }
+    params: { restaurantId, tableNumber, customerEmail: customerIdentifier },
   });
-  
+
   setActiveOrders(response.data || []);
 };
 ```
 
 ### **Auto-Refresh Logic**
+
 ```javascript
 // Refresh active orders when:
 useEffect(() => {
@@ -81,6 +90,7 @@ const handleVisibilityChange = () => {
 ## 🎨 User Experience
 
 ### **Enhanced Cart Modal Layout**
+
 ```
 ┌─────────────────────────────────────────┐
 │ Your Orders & Cart                   ✕  │
@@ -108,18 +118,21 @@ const handleVisibilityChange = () => {
 ```
 
 ### **Status Color Coding**
+
 - **Placed**: Yellow badge - Order received
 - **Confirmed**: Blue badge - Restaurant confirmed
 - **Preparing**: Orange badge - Being cooked
 - **Ready**: Green badge - Ready for pickup/delivery
 
 ### **Cart Button Badge**
+
 - Shows total count: **New items + Active orders**
 - Example: 3 new items + 2 active orders = Badge shows "5"
 
 ## 🔄 Order Flow
 
 ### **Customer Journey**
+
 ```
 1. Customer places first order → Order goes to "Placed" status
 2. Customer returns to menu → Sees order in "Preparing" status
@@ -130,6 +143,7 @@ const handleVisibilityChange = () => {
 ```
 
 ### **Multi-Order Scenario**
+
 ```
 Active Orders:
 ├── Order #1 (2:30 PM) - Preparing - ₹450
@@ -145,6 +159,7 @@ New Cart:
 ## 🎯 Benefits
 
 ### **For Customers**
+
 - ✅ **Track multiple orders** simultaneously
 - ✅ **See order progress** in real-time
 - ✅ **Add more items** while waiting
@@ -152,12 +167,14 @@ New Cart:
 - ✅ **Clear separation** between orders
 
 ### **For Restaurants**
+
 - ✅ **Increased orders** - customers can order more while waiting
 - ✅ **Better experience** - professional order tracking
 - ✅ **Reduced confusion** - clear order separation
 - ✅ **Higher revenue** - easier to place additional orders
 
 ### **Technical Benefits**
+
 - ✅ **Real-time updates** - automatic refresh on tab focus
 - ✅ **Persistent state** - orders tracked across sessions
 - ✅ **Scalable design** - handles multiple concurrent orders
@@ -166,12 +183,14 @@ New Cart:
 ## 🔍 Order Status Lifecycle
 
 ### **Active Statuses (Shown in Cart)**
+
 1. **"placed"** - Order submitted, waiting for restaurant confirmation
 2. **"confirmed"** - Restaurant accepted the order
 3. **"preparing"** - Food is being prepared
 4. **"ready"** - Order is ready for pickup/delivery
 
 ### **Completed Statuses (Hidden from Cart)**
+
 5. **"delivered"** - Order completed and delivered
 6. **"completed"** - Order finished (alternative to delivered)
 7. **"cancelled"** - Order was cancelled
@@ -179,18 +198,21 @@ New Cart:
 ## 🎨 Visual Design
 
 ### **Active Orders Section**
+
 - **Background**: Light blue (`bg-blue-50`)
 - **Border**: Blue accent (`border-blue-200`)
 - **Status badges**: Color-coded by status
 - **Icons**: Clock icon for active orders
 
 ### **New Cart Section**
+
 - **Background**: White
 - **Border**: Standard gray
 - **Icons**: Shopping cart icon
 - **Actions**: Add/remove quantity controls
 
 ### **Checkout Section**
+
 - **Background**: Light gray (`bg-gray-50`)
 - **Button**: Green primary action
 - **Note**: Clarifies separate order creation
@@ -198,12 +220,14 @@ New Cart:
 ## 🔧 Auto-Refresh Features
 
 ### **Triggers for Refresh**
+
 - Page becomes visible (tab switching)
 - Window gains focus
 - Authentication state changes
 - Manual cart opening
 
 ### **What Gets Refreshed**
+
 - Active order statuses
 - Customer points
 - Authentication state
@@ -221,6 +245,7 @@ The enhanced cart system now provides a **complete restaurant ordering experienc
 6. ✅ **Professional UI** - clear, organized, intuitive
 
 ### **Real-World Usage**
+
 - Customer orders appetizer → Shows "Preparing"
 - Customer adds main course → Separate new order
 - Appetizer becomes "Ready" → Customer knows to collect

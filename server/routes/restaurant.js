@@ -217,6 +217,43 @@ router.get("/pending", authenticate, requireAdmin, async (req, res) => {
   }
 });
 
+// Get restaurant and table info by QR slug (public for QR menu viewing)
+router.get("/qr/:qrSlug", async (req, res) => {
+  try {
+    const { qrSlug } = req.params;
+
+    // Import Table model
+    const Table = (await import("../models/Table.js")).default;
+
+    // Find table by QR slug
+    const table = await Table.findOne({ qrSlug });
+
+    if (!table) {
+      return res.status(404).json({ message: "Invalid QR code" });
+    }
+
+    // Get restaurant info
+    const restaurant = await Restaurant.findById(table.restaurantId).select(
+      "-owner.passwordHash"
+    );
+
+    if (!restaurant) {
+      return res.status(404).json({ message: "Restaurant not found" });
+    }
+
+    // Return table and restaurant info
+    res.json({
+      tableNumber: table.number,
+      restaurantId: restaurant._id,
+      restaurantName: restaurant.restaurantName,
+      qrSlug: table.qrSlug,
+    });
+  } catch (error) {
+    console.error("Error fetching QR info:", error);
+    res.status(500).json({ message: error.message });
+  }
+});
+
 // Get restaurant by ID (public for menu viewing)
 router.get("/:id", optionalAuth, async (req, res) => {
   try {

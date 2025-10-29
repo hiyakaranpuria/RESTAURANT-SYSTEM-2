@@ -1,94 +1,127 @@
-# Restaurant QR Menu System
+# 🍽️ Restaurant QR Menu & Ordering System
 
-A full-stack restaurant QR menu ordering system built with React, Node.js, Express, and MongoDB.
+> **Transform your restaurant into a modern, contactless dining experience!** Customers scan QR codes, browse menus, place orders, and track everything in real-time—all without downloading an app. Restaurant owners get a powerful dashboard to manage menus, generate QR codes, and handle orders seamlessly.
 
-## Features
+---
 
-### Customer Features
+## 🚀 What Makes This Exciting?
 
-- Scan QR code to view menu for specific table
-- Browse menu by categories
-- Search menu items
-- Add items to cart with custom notes
-- Place orders
-- Track order status in real-time
+Imagine walking into a restaurant, scanning a QR code on your table, and instantly seeing the full menu on your phone. You browse, customize your order, add items to cart, and place your order—all in seconds. The kitchen gets notified immediately, you track your order status in real-time, and when it's ready, you're notified. No waiting for waiters, no physical menus, no confusion.
 
-### Staff Features
+**This is exactly what this system does!**
 
-- Live order queue dashboard
-- Kanban-style order management (Placed → Preparing → Ready)
-- Update order status
-- Filter orders by status and table
-- Sound notifications for new orders
+### 🎯 Key Highlights
 
-### Admin Features
+- **📱 Zero App Downloads** - Works directly in any mobile browser
+- **⚡ Lightning Fast** - Built with modern tech for instant responses
+- **🏢 Multi-Restaurant Platform** - One system, unlimited restaurants
+- **🔐 Bank-Level Security** - JWT authentication, encrypted passwords, rate limiting
+- **💳 Guest Checkout** - Order without creating an account
+- **⭐ Smart Feedback** - Rate individual items, earn loyalty points
+- **🎁 Loyalty Rewards** - Customers earn points and get discounts
+- **📊 Real-Time Tracking** - Live order status updates
 
-- Menu management (CRUD operations)
-- Category management
-- Toggle item availability
-- Table management
-- Generate QR codes for tables
-- Download/print QR codes
+---
 
-## Tech Stack
+## 🛠️ Tech Stack
+
+This project is built with cutting-edge technologies:
 
 ### Frontend
 
-- React 18
-- React Router v6
-- Axios
-- Tailwind CSS
-- Vite
+- **React 18.2** - Modern UI library with hooks and context
+- **Tailwind CSS 3.4** - Beautiful, responsive styling
+- **Vite 5.0** - Lightning-fast build tool (way faster than Webpack!)
+- **React Router v6** - Smooth client-side navigation
+- **Axios** - Clean API communication
+- **QRCode.react** - Generate QR codes on the fly
 
 ### Backend
 
-- Node.js
-- Express
-- MongoDB with Mongoose
-- JWT authentication
-- bcryptjs for password hashing
-- QRCode generation
+- **Node.js + Express 4.18** - Robust server framework
+- **MongoDB + Mongoose** - Flexible NoSQL database
+- **JWT (jsonwebtoken)** - Secure authentication tokens
+- **bcryptjs** - Military-grade password hashing
+- **Nodemailer** - Email notifications (password reset, etc.)
+- **Helmet** - Security headers protection
+- **Express Rate Limit** - Prevent abuse and attacks
+- **Multer** - Handle file uploads (documents, images)
 
-## Installation
+---
+
+## 📦 Installation & Setup
 
 ### Prerequisites
 
-- Node.js (v16 or higher)
-- MongoDB (local or Atlas)
+- **Node.js** v16+ ([Download here](https://nodejs.org/))
+- **MongoDB** ([Download here](https://www.mongodb.com/try/download/community) or use [MongoDB Atlas](https://www.mongodb.com/cloud/atlas) free tier)
 
-### Setup
-
-1. Clone the repository
+### Step 1: Clone the Repository
 
 ```bash
-git clone <repository-url>
-cd restaurant-qr-menu
+git clone https://github.com/YashDave11/RESTAURANT-SYSTEM-2.git
+cd RESTAURANT-SYSTEM-2
 ```
 
-2. Install dependencies
+### Step 2: Install Dependencies
 
 ```bash
 npm install
 ```
 
-3. Create `.env` file in the root directory
+### Step 3: Configure Environment Variables
+
+Create a `.env` file in the root directory:
 
 ```env
+# Database
 MONGODB_URI=mongodb://localhost:27017/restaurant-qr-menu
-JWT_SECRET=your-secret-key-change-in-production
-JWT_REFRESH_SECRET=your-refresh-secret-key
+
+# JWT Secrets (change these!)
+JWT_SECRET=your-super-secret-key-here
+JWT_REFRESH_SECRET=your-refresh-secret-here
+
+# Server
 PORT=5000
 NODE_ENV=development
+
+# Frontend URLs
+CLIENT_URL=http://localhost:3000
 FRONTEND_URL=http://localhost:3000
+
+# Email (for password reset)
+EMAIL_SERVICE=gmail
+EMAIL_USER=your-email@gmail.com
+EMAIL_PASSWORD=your-gmail-app-password
+
+# App Name
+APP_NAME=Restaurant QR Menu
 ```
 
-4. Seed the database (optional)
+> 💡 **Gmail Tip:** Use an [App Password](https://support.google.com/accounts/answer/185833), not your regular password!
+
+### Step 4: Seed the Database (Optional but Recommended)
 
 ```bash
-node server/seed.js
+npm run seed
 ```
 
-5. Start the development servers
+This creates sample data:
+
+- Demo restaurants
+- Menu items with categories
+- Test accounts (admin, staff, customer)
+- Sample tables with QR codes
+
+### Step 5: Start the Application
+
+**Windows Users:**
+
+```bash
+start.bat
+```
+
+**Manual Start (All Platforms):**
 
 Terminal 1 - Backend:
 
@@ -102,110 +135,182 @@ Terminal 2 - Frontend:
 npm run dev
 ```
 
-The frontend will be available at `http://localhost:3000`
-The backend API will be available at `http://localhost:5000`
+### Step 6: Open in Browser
 
-## Default Users (after seeding)
+- **Frontend:** http://localhost:3000
+- **Backend API:** http://localhost:5000
 
-- **Admin**: admin@restaurant.com / admin123
-- **Staff**: staff@restaurant.com / staff123
-- **Customer**: customer@restaurant.com / customer123
+---
 
-## API Endpoints
+## 🎮 How It Works
 
-### Authentication
+### For Customers:
 
-- `POST /api/auth/register` - Register new user
-- `POST /api/auth/login` - Login
-- `GET /api/auth/me` - Get current user
+1. **Scan QR Code** - Use phone camera to scan table QR code
+2. **Browse Menu** - See all dishes with prices, images, descriptions
+3. **Customize Order** - Select size, add-ons, special instructions
+4. **Add to Cart** - Build your order
+5. **Checkout** - Place order (with or without login)
+6. **Track Status** - Watch your order go from "Placed" → "Preparing" → "Ready"
+7. **Give Feedback** - Rate items, earn loyalty points
 
-### Menu
+### For Restaurant Owners:
 
-- `GET /api/menu/categories` - Get all categories
-- `GET /api/menu/items` - Get menu items (with pagination, search, filter)
-- `GET /api/menu/by-table/:slug` - Get menu for specific table
-- `POST /api/menu/items` - Create menu item (admin only)
-- `PATCH /api/menu/items/:id` - Update menu item (admin only)
-- `DELETE /api/menu/items/:id` - Delete menu item (admin only)
+1. **Register** - Sign up with business details and documents
+2. **Get Verified** - Admin reviews and approves your restaurant
+3. **Create Menu** - Add items, categories, prices, images
+4. **Generate QR Codes** - Create unique QR codes for each table
+5. **Download/Print** - Get QR codes as images or PDFs
+6. **Receive Orders** - Orders appear in real-time dashboard
+7. **Manage Orders** - Update status, view history, track performance
 
-### Tables
+### For Kitchen Staff:
 
-- `GET /api/tables` - Get all tables (staff/admin)
-- `POST /api/tables` - Create table (admin only)
-- `GET /api/tables/:id/qr` - Generate QR code (admin only)
-- `DELETE /api/tables/:id` - Delete table (admin only)
+1. **View Order Queue** - See all orders in Kanban board style
+2. **Update Status** - Drag orders from "Placed" → "Preparing" → "Ready"
+3. **Get Notifications** - Sound alerts for new orders
+4. **Filter Orders** - By status, table, or time
 
-### Orders
+### For Admins:
 
-- `POST /api/orders` - Place order (public)
-- `GET /api/orders` - Get orders (staff/admin, with filters)
-- `GET /api/orders/:id` - Get order by ID
-- `PATCH /api/orders/:id/status` - Update order status (staff/admin)
+1. **Verify Restaurants** - Review documents, approve/reject
+2. **Manage System** - Oversee all restaurants and orders
+3. **User Management** - Handle all user accounts
+4. **System Analytics** - Monitor platform performance
 
-## Project Structure
+---
 
-```
-restaurant-qr-menu/
-├── server/
-│   ├── models/          # Mongoose models
-│   ├── routes/          # Express routes
-│   ├── middleware/      # Auth middleware
-│   ├── index.js         # Server entry point
-│   └── seed.js          # Database seeder
-├── src/
-│   ├── components/      # Reusable components
-│   ├── context/         # React context (Auth, Cart)
-│   ├── pages/           # Page components
-│   │   ├── admin/       # Admin pages
-│   │   ├── staff/       # Staff pages
-│   │   ├── customer/    # Customer pages
-│   │   └── auth/        # Auth pages
-│   ├── App.jsx          # Main app component
-│   ├── main.jsx         # React entry point
-│   └── index.css        # Global styles
-├── package.json
-├── vite.config.js
-├── tailwind.config.js
-└── README.md
-```
+## 🔐 Security Features
 
-## Key Features Implementation
+We take security seriously:
 
-### Role-Based Access Control (RBAC)
+- ✅ **JWT Authentication** - Secure token-based login
+- ✅ **Password Hashing** - bcrypt with salt rounds
+- ✅ **Rate Limiting** - Prevent brute force attacks
+- ✅ **Input Sanitization** - Block XSS and injection attacks
+- ✅ **CORS Protection** - Controlled cross-origin access
+- ✅ **Helmet.js** - Security HTTP headers
+- ✅ **File Upload Validation** - Type and size checks
+- ✅ **Email Verification** - Secure password reset flow
 
-- JWT-based authentication
-- Middleware to check user roles
-- Protected routes on frontend and backend
+---
 
-### QR Code System
+## 🎯 Test Accounts
 
-- Each table has a unique QR slug
-- QR codes link to `/m/:qrSlug`
-- Table context persisted in cart session
+After running `npm run seed`, use these accounts:
+
+| Role     | Email                   | Password    |
+| -------- | ----------------------- | ----------- |
+| Admin    | admin@restaurant.com    | admin123    |
+| Staff    | staff@restaurant.com    | staff123    |
+| Customer | customer@restaurant.com | customer123 |
+
+---
+
+## 🌟 Key Features
+
+### Multi-Role System
+
+- **Customers** - Browse, order, track, review
+- **Restaurant Owners** - Manage menu, QR codes, orders
+- **Kitchen Staff** - Handle order queue, update status
+- **System Admins** - Verify restaurants, oversee platform
+
+### Smart Menu System
+
+- Categories and subcategories
+- Item customization (sizes, add-ons)
+- Dietary information (veg/non-veg)
+- Availability toggle
+- Search functionality
+- Image uploads
 
 ### Order Management
 
-- Real-time order status updates
-- Kanban-style workflow
-- Status progression: placed → preparing → ready → served
+- Real-time order tracking
+- Status workflow: Placed → Preparing → Ready → Delivered
+- Special instructions support
+- Order history
+- Reorder functionality
 
-### Menu Browsing
+### QR Code System
 
-- Category filtering
-- Text search with MongoDB text indexes
-- Availability toggle
-- Pagination support
+- Unique QR for each table
+- Download as image or PDF
+- Automatic table identification
+- No app required for customers
 
-## Future Enhancements
+### Feedback & Loyalty
 
-- Socket.io for real-time updates
-- Image upload for menu items
-- Order history for customers
-- Analytics dashboard
+- Item-level ratings
+- Order feedback
+- Loyalty points system
+- Points redemption for discounts
+
+---
+
+## 📱 API Endpoints
+
+Quick reference for developers:
+
+```
+Authentication:
+POST   /api/auth/register          - Register user
+POST   /api/auth/login             - Login
+POST   /api/auth/forgot-password   - Request reset code
+POST   /api/auth/reset-password    - Reset password
+
+Restaurants:
+POST   /api/restaurant/register    - Register restaurant
+POST   /api/restaurant/login       - Restaurant login
+GET    /api/restaurant/tables      - Get tables
+POST   /api/restaurant/tables      - Create table
+
+Menu:
+GET    /api/menu/items             - Get menu items
+POST   /api/menu/items             - Create item (admin)
+GET    /api/menu/by-table/:slug    - Get menu by QR code
+
+Orders:
+POST   /api/orders                 - Place order
+GET    /api/orders                 - Get orders (filtered)
+PATCH  /api/orders/:id/status      - Update order status
+```
+
+---
+
+## 🚀 What's Next?
+
+Future enhancements planned:
+
+- Real-time updates with Socket.io
+- Payment gateway integration
+- Native mobile apps
 - Multi-language support
-- Payment integration
+- Advanced analytics
 - Table reservation system
+- Inventory management
 
-## License
+---
 
-MIT
+## 👨‍💻 Author
+
+**Yash Dave**
+
+- GitHub: [@YashDave11](https://github.com/YashDave11)
+
+---
+
+## 📄 License
+
+MIT License - feel free to use this project for learning or commercial purposes!
+
+---
+
+<div align="center">
+
+**Built with ❤️ for the Restaurant Industry**
+
+⭐ Star this repo if you find it helpful!
+
+</div>

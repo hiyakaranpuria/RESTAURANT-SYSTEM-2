@@ -8,7 +8,6 @@ import LandingPage from "./pages/LandingPage";
 import HomePage from "./pages/HomePage";
 
 // Customer Pages
-import MenuPage from "./pages/customer/MenuPage";
 import CartPage from "./pages/customer/CartPage";
 import OrderStatusPage from "./pages/customer/OrderStatusPage";
 import CustomerDashboard from "./pages/customer/CustomerDashboard";
@@ -52,13 +51,21 @@ function App() {
       <CartProvider>
         <BrowserRouter>
           <Routes>
-            {/* Customer Routes */}
-            <Route path="/m/:restaurantId" element={<MenuPage />} />
+            {/* Customer Routes - QR Code Only */}
             <Route path="/t/:qrSlug" element={<QRMenuPage />} />
             <Route path="/checkout/:restaurantId" element={<CheckoutPage />} />
-            <Route path="/bill-summary/:restaurantId" element={<BillSummaryPage />} />
-            <Route path="/customer/history/:restaurantId" element={<CustomerOrderHistory />} />
-            <Route path="/customer/orders" element={<CustomerOrderHistoryLogin />} />
+            <Route
+              path="/bill-summary/:restaurantId"
+              element={<BillSummaryPage />}
+            />
+            <Route
+              path="/customer/history/:restaurantId"
+              element={<CustomerOrderHistory />}
+            />
+            <Route
+              path="/customer/orders"
+              element={<CustomerOrderHistoryLogin />}
+            />
             <Route path="/migration-test" element={<MigrationTest />} />
             <Route path="/cart" element={<CartPage />} />
             <Route path="/order/:orderId" element={<OrderStatusPage />} />
@@ -101,10 +108,7 @@ function App() {
               path="/restaurant/orders"
               element={<RestaurantOrdersPage />}
             />
-            <Route
-              path="/restaurant/qr-codes"
-              element={<QRManagementPage />}
-            />
+            <Route path="/restaurant/qr-codes" element={<QRManagementPage />} />
             <Route
               path="/restaurant/generate-qr"
               element={<QRGenerationPage />}

@@ -17,32 +17,79 @@ const CheckoutPage = () => {
   const [tableNumber, setTableNumber] = useState("");
   const [specialInstructions, setSpecialInstructions] = useState("");
   const [loading, setLoading] = useState(true);
+  const [showLoginModal, setShowLoginModal] = useState(false);
   const [placing, setPlacing] = useState(false);
-  const [showCustomerLogin, setShowCustomerLogin] = useState(false);
 
   useEffect(() => {
-    // Check if customer is logged in
-    if (!authLoading && !isCustomerAuthenticated) {
-      // Show login modal
-      setShowCustomerLogin(true);
+    // Wait for auth to finish loading before checking
+    if (authLoading) {
+      console.log("⏳ Waiting for auth to load...");
       return;
     }
 
-    if (!authLoading && isCustomerAuthenticated) {
-      // Get cart from MenuPage (we'll use localStorage for persistence)
-      const savedCart = localStorage.getItem(`cart_${restaurantId}`);
-      const savedTable = sessionStorage.getItem("tableNumber");
+    console.log("🔍 CheckoutPage - Auth check:", {
+      isCustomerAuthenticated,
+      authLoading,
+      hasToken: !!localStorage.getItem("customer_token"),
+    });
 
-      if (!savedCart || !savedTable) {
-        navigate(`/m/${restaurantId}`);
-        return;
-      }
-
-      setCart(JSON.parse(savedCart));
-      setTableNumber(savedTable);
-      fetchRestaurantInfo();
+    // Check authentication first - login is REQUIRED
+    if (!isCustomerAuthenticated) {
+      // Show login modal - must login to proceed
+      console.log("❌ Not authenticated, showing login modal");
+      setShowLoginModal(true);
+      setLoading(false);
+      return;
     }
+
+    console.log("✅ User is authenticated, loading cart...");
+
+    // User is authenticated, load cart and proceed
+    const savedCart = localStorage.getItem(`cart_${restaurantId}`);
+    const savedTable = sessionStorage.getItem("tableNumber");
+
+    if (!savedCart || !savedTable) {
+      // Navigate back to QR menu or home
+      const qrSlug = sessionStorage.getItem("qrSlug");
+      if (qrSlug) {
+        navigate(`/t/${qrSlug}`);
+      } else {
+        navigate("/");
+      }
+      return;
+    }
+
+    setCart(JSON.parse(savedCart));
+    setTableNumber(savedTable);
+    fetchRestaurantInfo();
   }, [restaurantId, navigate, isCustomerAuthenticated, authLoading]);
+
+  // Listen for auth state changes from login modal
+  useEffect(() => {
+    const handleAuthStateChange = (event) => {
+      console.log("🔔 CheckoutPage - Auth state changed:", event.detail);
+      if (event.detail.type === "customer" && event.detail.isAuthenticated) {
+        console.log("✅ Customer logged in, closing modal and loading data");
+        setShowLoginModal(false);
+
+        // Load cart and restaurant data
+        const savedCart = localStorage.getItem(`cart_${restaurantId}`);
+        const savedTable = sessionStorage.getItem("tableNumber");
+
+        if (savedCart && savedTable) {
+          setCart(JSON.parse(savedCart));
+          setTableNumber(savedTable);
+          fetchRestaurantInfo();
+        }
+      }
+    };
+
+    window.addEventListener("authStateChanged", handleAuthStateChange);
+
+    return () => {
+      window.removeEventListener("authStateChanged", handleAuthStateChange);
+    };
+  }, [restaurantId]);
 
   const fetchRestaurantInfo = async () => {
     try {
@@ -69,7 +116,7 @@ const CheckoutPage = () => {
       const customerSession = getCustomerSession();
       console.log("Customer session:", customerSession);
       console.log("Cart items:", cart);
-      
+
       const orderData = {
         restaurantId,
         tableNumber,
@@ -81,14 +128,15 @@ const CheckoutPage = () => {
         })),
         specialInstructions,
         totalAmount: getTotalPrice(),
-        customerInfo: customerSession.isAuthenticated && customerSession.user
-          ? {
-              userId: customerSession.user._id,
-              email: customerSession.user.email,
-              name: customerSession.user.name,
-              phone: customerSession.user.phone,
-            }
-          : null,
+        customerInfo:
+          customerSession.isAuthenticated && customerSession.user
+            ? {
+                userId: customerSession.user._id,
+                email: customerSession.user.email,
+                name: customerSession.user.name,
+                phone: customerSession.user.phone,
+              }
+            : null,
       };
 
       console.log("Order data being sent:", orderData);
@@ -126,7 +174,22 @@ const CheckoutPage = () => {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center gap-3">
             <button
-              onClick={() => navigate(`/m/${restaurantId}`)}
+              onClick={() => {
+                // Navigate back to QR menu
+                const qrSlug = sessionStorage.getItem("qrSlug");
+
+                // Debug logging
+                console.log("🔙 Back button clicked");
+                console.log("QR Slug:", qrSlug);
+
+                if (qrSlug) {
+                  console.log("✅ Navigating to QR menu:", `/t/${qrSlug}`);
+                  navigate(`/t/${qrSlug}`);
+                } else {
+                  console.log("⚠️ No QR slug found, redirecting to home");
+                  navigate("/");
+                }
+              }}
               className="text-gray-600 hover:text-gray-900"
             >
               <svg
@@ -154,6 +217,38 @@ const CheckoutPage = () => {
       </header>
 
       <main className="container mx-auto px-4 py-6 max-w-2xl">
+        {/* Logged In User Info */}
+        {isCustomerAuthenticated && (
+          <div className="bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-200 rounded-lg p-4 mb-4 animate-fadeIn">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                <svg
+                  className="w-5 h-5 text-green-600"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M5 13l4 4L19 7"
+                  />
+                </svg>
+              </div>
+              <div>
+                <p className="text-sm text-green-600 font-medium">
+                  Logged in as
+                </p>
+                <p className="font-semibold text-green-900">
+                  {getCustomerSession().user?.name ||
+                    getCustomerSession().user?.email}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Table Info */}
         <div className="bg-white rounded-lg shadow-md p-4 mb-4 animate-fadeIn">
           <div className="flex items-center gap-3">
@@ -252,7 +347,10 @@ const CheckoutPage = () => {
         <button
           onClick={() => {
             // Save special instructions to localStorage
-            localStorage.setItem(`instructions_${restaurantId}`, specialInstructions);
+            localStorage.setItem(
+              `instructions_${restaurantId}`,
+              specialInstructions
+            );
             // Navigate to bill summary page
             navigate(`/bill-summary/${restaurantId}`);
           }}
@@ -267,16 +365,39 @@ const CheckoutPage = () => {
         </p>
       </main>
 
-      {/* Customer Login Modal */}
-      {showCustomerLogin && (
+      {/* Required Login Modal */}
+      {showLoginModal && (
         <CustomerLoginModal
           onClose={() => {
-            setShowCustomerLogin(false);
-            navigate(`/m/${restaurantId}`);
+            // Don't allow closing - login is required
+            // Navigate back to menu instead
+            const qrSlug = sessionStorage.getItem("qrSlug");
+            if (qrSlug) {
+              navigate(`/t/${qrSlug}`);
+            } else {
+              navigate("/");
+            }
           }}
           onSuccess={() => {
-            setShowCustomerLogin(false);
-            window.location.reload(); // Reload to fetch data with customer session
+            console.log("🎉 Login successful in CheckoutPage!");
+            setShowLoginModal(false);
+
+            // Don't reload - just wait for auth context to update
+            // The useEffect will automatically re-run when isCustomerAuthenticated changes
+            setTimeout(() => {
+              // Force a re-check by updating loading state
+              setLoading(true);
+              setTimeout(() => {
+                const savedCart = localStorage.getItem(`cart_${restaurantId}`);
+                const savedTable = sessionStorage.getItem("tableNumber");
+
+                if (savedCart && savedTable) {
+                  setCart(JSON.parse(savedCart));
+                  setTableNumber(savedTable);
+                  fetchRestaurantInfo();
+                }
+              }, 100);
+            }, 300);
           }}
         />
       )}

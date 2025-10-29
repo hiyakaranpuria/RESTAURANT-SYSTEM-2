@@ -7,22 +7,42 @@ import CustomerLoginModal from "../../components/CustomerLoginModal";
 const CheckoutPage = () => {
   const { restaurantId } = useParams();
   const navigate = useNavigate();
-  const { isCustomerAuthenticated, getCustomerSession } = useAuth();
+  const {
+    isCustomerAuthenticated,
+    getCustomerSession,
+    loading: authLoading,
+  } = useAuth();
   const [restaurantInfo, setRestaurantInfo] = useState(null);
   const [cart, setCart] = useState([]);
   const [tableNumber, setTableNumber] = useState("");
   const [specialInstructions, setSpecialInstructions] = useState("");
   const [loading, setLoading] = useState(true);
   const [showLoginModal, setShowLoginModal] = useState(false);
+  const [placing, setPlacing] = useState(false);
 
   useEffect(() => {
+    // Wait for auth to finish loading before checking
+    if (authLoading) {
+      console.log("⏳ Waiting for auth to load...");
+      return;
+    }
+
+    console.log("🔍 CheckoutPage - Auth check:", {
+      isCustomerAuthenticated,
+      authLoading,
+      hasToken: !!localStorage.getItem("customer_token"),
+    });
+
     // Check authentication first - login is REQUIRED
     if (!isCustomerAuthenticated) {
       // Show login modal - must login to proceed
+      console.log("❌ Not authenticated, showing login modal");
       setShowLoginModal(true);
       setLoading(false);
       return;
     }
+
+    console.log("✅ User is authenticated, loading cart...");
 
     // User is authenticated, load cart and proceed
     const savedCart = localStorage.getItem(`cart_${restaurantId}`);
@@ -42,7 +62,34 @@ const CheckoutPage = () => {
     setCart(JSON.parse(savedCart));
     setTableNumber(savedTable);
     fetchRestaurantInfo();
-  }, [restaurantId, navigate, isCustomerAuthenticated]);
+  }, [restaurantId, navigate, isCustomerAuthenticated, authLoading]);
+
+  // Listen for auth state changes from login modal
+  useEffect(() => {
+    const handleAuthStateChange = (event) => {
+      console.log("🔔 CheckoutPage - Auth state changed:", event.detail);
+      if (event.detail.type === "customer" && event.detail.isAuthenticated) {
+        console.log("✅ Customer logged in, closing modal and loading data");
+        setShowLoginModal(false);
+
+        // Load cart and restaurant data
+        const savedCart = localStorage.getItem(`cart_${restaurantId}`);
+        const savedTable = sessionStorage.getItem("tableNumber");
+
+        if (savedCart && savedTable) {
+          setCart(JSON.parse(savedCart));
+          setTableNumber(savedTable);
+          fetchRestaurantInfo();
+        }
+      }
+    };
+
+    window.addEventListener("authStateChanged", handleAuthStateChange);
+
+    return () => {
+      window.removeEventListener("authStateChanged", handleAuthStateChange);
+    };
+  }, [restaurantId]);
 
   const fetchRestaurantInfo = async () => {
     try {
@@ -332,9 +379,25 @@ const CheckoutPage = () => {
             }
           }}
           onSuccess={() => {
+            console.log("🎉 Login successful in CheckoutPage!");
             setShowLoginModal(false);
-            // Reload to update authentication state
-            window.location.reload();
+
+            // Don't reload - just wait for auth context to update
+            // The useEffect will automatically re-run when isCustomerAuthenticated changes
+            setTimeout(() => {
+              // Force a re-check by updating loading state
+              setLoading(true);
+              setTimeout(() => {
+                const savedCart = localStorage.getItem(`cart_${restaurantId}`);
+                const savedTable = sessionStorage.getItem("tableNumber");
+
+                if (savedCart && savedTable) {
+                  setCart(JSON.parse(savedCart));
+                  setTableNumber(savedTable);
+                  fetchRestaurantInfo();
+                }
+              }, 100);
+            }, 300);
           }}
         />
       )}

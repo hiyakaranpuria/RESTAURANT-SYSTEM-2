@@ -246,7 +246,10 @@ export const AuthProvider = ({ children }) => {
       const userData = data.user || data.restaurant;
       localStorage.setItem(STORAGE_KEYS[type].data, JSON.stringify(userData));
 
-      // Update session
+      // Set axios header immediately
+      axios.defaults.headers.common["Authorization"] = `Bearer ${data.token}`;
+
+      // Update session - force immediate state update
       setSessions((prev) => {
         const newSessions = {
           ...prev,
@@ -261,6 +264,13 @@ export const AuthProvider = ({ children }) => {
 
       setCurrentSessionType(type);
       console.log(`[MultiAuth] Current session type set to: ${type}`);
+
+      // Dispatch a custom event to notify all components
+      window.dispatchEvent(
+        new CustomEvent("authStateChanged", {
+          detail: { type, isAuthenticated: true, user: userData },
+        })
+      );
 
       return data;
     } catch (error) {

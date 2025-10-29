@@ -143,9 +143,25 @@ const QRMenuPage = () => {
 
     window.addEventListener("focus", handleFocus);
 
+    // Listen for auth state changes from the context
+    const handleAuthStateChange = (event) => {
+      console.log("🔔 Auth state changed event received:", event.detail);
+      if (event.detail.type === "customer" && event.detail.isAuthenticated) {
+        console.log("✅ Customer logged in, refreshing data...");
+        fetchCustomerPoints();
+        fetchActiveOrders();
+        // Force re-check auth
+        setAuthChecked(false);
+        setTimeout(() => setAuthChecked(true), 100);
+      }
+    };
+
+    window.addEventListener("authStateChanged", handleAuthStateChange);
+
     return () => {
       document.removeEventListener("visibilitychange", handleVisibilityChange);
       window.removeEventListener("focus", handleFocus);
+      window.removeEventListener("authStateChanged", handleAuthStateChange);
     };
   }, [tableInfo, authLoading]);
 
@@ -1013,8 +1029,16 @@ const QRMenuPage = () => {
         <CustomerLoginModal
           onClose={() => setShowCustomerLogin(false)}
           onSuccess={() => {
+            console.log("🎉 Login successful! Refreshing auth state...");
             setShowCustomerLogin(false);
-            fetchCustomerPoints();
+            // Force a small delay to ensure auth context has updated
+            setTimeout(() => {
+              fetchCustomerPoints();
+              fetchActiveOrders();
+              // Force re-render by updating a state
+              setAuthChecked(false);
+              setTimeout(() => setAuthChecked(true), 100);
+            }, 300);
           }}
         />
       )}

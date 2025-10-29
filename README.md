@@ -296,8 +296,10 @@ Future enhancements planned:
 ## 👨‍💻 Author
 
 **Yash Dave**
+**Hiya Karanpuria**
 
 - GitHub: [@YashDave11](https://github.com/YashDave11)
+- GitHub: [@hiyakaranpuria](https://github.com/hiyakaranpuria)
 
 ---
 

@@ -28,12 +28,18 @@ const BillSummaryPage = () => {
       hasCart: !!savedCart,
       hasTable: !!savedTable,
       isAuthenticated: isCustomerAuthenticated,
-      restaurantId
+      restaurantId,
     });
 
     if (!savedCart || !savedTable) {
       console.log("Missing cart or table, redirecting to menu");
-      navigate(`/m/${restaurantId}`);
+      // Navigate back to QR menu or home
+      const qrSlug = sessionStorage.getItem("qrSlug");
+      if (qrSlug) {
+        navigate(`/t/${qrSlug}`);
+      } else {
+        navigate("/");
+      }
       return;
     }
 
@@ -62,7 +68,7 @@ const BillSummaryPage = () => {
     try {
       const customerSession = getCustomerSession();
       console.log("Fetching customer points for session:", customerSession);
-      
+
       if (customerSession.isAuthenticated && customerSession.user?.email) {
         const response = await axios.get(
           `/api/feedback/customer/email/${encodeURIComponent(
@@ -143,7 +149,10 @@ const BillSummaryPage = () => {
       console.log("Full URL would be:", `${window.location.origin}/api/orders`);
 
       // Try direct backend URL first for debugging
-      const { data } = await axios.post("http://localhost:5000/api/orders", orderData);
+      const { data } = await axios.post(
+        "http://localhost:5000/api/orders",
+        orderData
+      );
       console.log("Order placed successfully:", data);
 
       // If points were redeemed, update customer points
@@ -159,6 +168,9 @@ const BillSummaryPage = () => {
       // Clear cart and instructions
       localStorage.removeItem(`cart_${restaurantId}`);
       localStorage.removeItem(`instructions_${restaurantId}`);
+
+      // Set timestamp for order placement (for showing success message)
+      sessionStorage.setItem("lastOrderTime", Date.now().toString());
 
       // Redirect to order tracking
       navigate(`/order/${data._id}`);

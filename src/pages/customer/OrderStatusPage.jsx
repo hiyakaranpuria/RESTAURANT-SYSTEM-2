@@ -34,13 +34,15 @@ const OrderStatusPage = () => {
     setFeedbackSubmitted(true);
     // Refresh the order to show updated feedback status
     fetchOrder();
-    
+
     // Update points in parent menu page if available
     if (window.opener && window.opener.updateCustomerPoints) {
       window.opener.updateCustomerPoints(result.totalPoints);
     }
-    
-    alert(`Thank you for your feedback! You earned ${result.pointsEarned} points. Total points: ${result.totalPoints}`);
+
+    alert(
+      `Thank you for your feedback! You earned ${result.pointsEarned} points. Total points: ${result.totalPoints}`
+    );
   };
 
   const statusSteps = [
@@ -110,7 +112,15 @@ const OrderStatusPage = () => {
         <div className="container mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
             <button
-              onClick={() => navigate(`/m/${order.restaurantId._id}`)}
+              onClick={() => {
+                // Navigate back to QR menu
+                const qrSlug = sessionStorage.getItem("qrSlug");
+                if (qrSlug) {
+                  navigate(`/t/${qrSlug}`);
+                } else {
+                  navigate("/");
+                }
+              }}
               className="text-gray-600 hover:text-gray-900"
             >
               <svg
@@ -374,7 +384,9 @@ const OrderStatusPage = () => {
                     />
                   </svg>
                 </div>
-                <h3 className="text-lg font-semibold mb-2">How was your experience?</h3>
+                <h3 className="text-lg font-semibold mb-2">
+                  How was your experience?
+                </h3>
                 <p className="text-gray-600 mb-4">
                   Rate your order and earn points for future discounts!
                 </p>
@@ -388,6 +400,39 @@ const OrderStatusPage = () => {
             )}
           </div>
         )}
+
+        {/* Back to Menu Button */}
+        <div className="mt-6 animate-fadeIn" style={{ animationDelay: "0.5s" }}>
+          <button
+            onClick={() => {
+              const qrSlug = sessionStorage.getItem("qrSlug");
+              if (qrSlug) {
+                navigate(`/t/${qrSlug}`);
+              } else {
+                navigate("/");
+              }
+            }}
+            className="w-full bg-green-600 text-white py-4 rounded-lg font-bold text-lg hover:bg-green-700 transition-all transform hover:scale-105 shadow-lg flex items-center justify-center gap-2"
+          >
+            <svg
+              className="w-6 h-6"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
+              />
+            </svg>
+            Back to Menu
+          </button>
+          <p className="text-center text-sm text-gray-500 mt-3">
+            Want to order more? Return to the menu
+          </p>
+        </div>
       </main>
 
       {/* Feedback Modal */}

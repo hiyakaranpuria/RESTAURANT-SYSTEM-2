@@ -28,8 +28,13 @@ const QRMenuPage = () => {
   const [showFeedbackHistory, setShowFeedbackHistory] = useState(false);
   const [activeOrders, setActiveOrders] = useState([]);
 
-  const { isCustomerAuthenticated, getCustomerSession, logout, loading: authLoading } = useAuth();
-  
+  const {
+    isCustomerAuthenticated,
+    getCustomerSession,
+    logout,
+    loading: authLoading,
+  } = useAuth();
+
   // Local state to track if we've checked authentication at least once
   const [authChecked, setAuthChecked] = useState(false);
 
@@ -40,9 +45,15 @@ const QRMenuPage = () => {
       isCustomerAuthenticated,
       authChecked,
       tableInfo: !!tableInfo,
-      restaurantInfo: !!restaurantInfo
+      restaurantInfo: !!restaurantInfo,
     });
-  }, [authLoading, isCustomerAuthenticated, authChecked, tableInfo, restaurantInfo]);
+  }, [
+    authLoading,
+    isCustomerAuthenticated,
+    authChecked,
+    tableInfo,
+    restaurantInfo,
+  ]);
 
   // Mark auth as checked when loading completes
   useEffect(() => {
@@ -60,7 +71,17 @@ const QRMenuPage = () => {
       // Set table number in session storage
       sessionStorage.setItem("tableNumber", tableInfo.tableNumber);
       sessionStorage.setItem("restaurantId", tableInfo.restaurantId);
-      
+      // Store the QR slug to remember the entry point
+      sessionStorage.setItem("qrSlug", qrSlug);
+      sessionStorage.setItem("entryPoint", "qr"); // Mark that user entered via QR
+
+      // Debug logging
+      console.log("🎯 QR Menu Entry Point Set:");
+      console.log("  - Entry Point: qr");
+      console.log("  - QR Slug:", qrSlug);
+      console.log("  - Table Number:", tableInfo.tableNumber);
+      console.log("  - Restaurant ID:", tableInfo.restaurantId);
+
       // Load cart from localStorage
       const savedCart = localStorage.getItem(`cart_${tableInfo.restaurantId}`);
       if (savedCart) {
@@ -69,8 +90,9 @@ const QRMenuPage = () => {
 
       fetchMenuData();
       fetchCustomerPoints();
+      fetchActiveOrders(); // Fetch active orders on page load
     }
-  }, [tableInfo]);
+  }, [tableInfo, qrSlug]);
 
   // Fetch customer points and active orders whenever authentication state changes
   useEffect(() => {
@@ -79,6 +101,23 @@ const QRMenuPage = () => {
       fetchActiveOrders();
     }
   }, [isCustomerAuthenticated, authLoading, tableInfo]);
+
+  // Auto-show success message when returning after placing order
+  useEffect(() => {
+    // Check if user just placed an order (cart was cleared but active orders exist)
+    if (activeOrders.length > 0 && cart.length === 0 && tableInfo) {
+      // Show a success notification
+      const lastOrderTime = sessionStorage.getItem("lastOrderTime");
+      const now = Date.now();
+
+      // If order was placed in last 10 seconds, show notification
+      if (lastOrderTime && now - parseInt(lastOrderTime) < 10000) {
+        console.log("🎉 Order placed successfully! Showing active orders.");
+        // Clear the flag
+        sessionStorage.removeItem("lastOrderTime");
+      }
+    }
+  }, [activeOrders, cart, tableInfo]);
 
   // Handle page visibility changes (tab switching)
   useEffect(() => {
@@ -91,8 +130,8 @@ const QRMenuPage = () => {
       }
     };
 
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
     // Also handle window focus events
     const handleFocus = () => {
       if (tableInfo && !authLoading) {
@@ -102,11 +141,11 @@ const QRMenuPage = () => {
       }
     };
 
-    window.addEventListener('focus', handleFocus);
+    window.addEventListener("focus", handleFocus);
 
     return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      window.removeEventListener('focus', handleFocus);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("focus", handleFocus);
     };
   }, [tableInfo, authLoading]);
 
@@ -119,7 +158,9 @@ const QRMenuPage = () => {
     } catch (error) {
       console.error("❌ Error fetching table info:", error);
       // Redirect to error page or show error message
-      alert("Invalid QR code. Please scan a valid QR code from the restaurant.");
+      alert(
+        "Invalid QR code. Please scan a valid QR code from the restaurant."
+      );
       navigate("/");
     }
   };
@@ -127,20 +168,25 @@ const QRMenuPage = () => {
   const fetchMenuData = async () => {
     try {
       setLoading(true);
-      console.log("🔍 Fetching menu data for restaurant:", tableInfo.restaurantId);
-      
+      console.log(
+        "🔍 Fetching menu data for restaurant:",
+        tableInfo.restaurantId
+      );
+
       // Fetch all data in parallel for faster loading
-      const [restaurantResponse, categoriesResponse, itemsResponse] = await Promise.all([
-        axios.get(`/api/restaurant/${tableInfo.restaurantId}`),
-        axios.get(`/api/menu/categories?restaurantId=${tableInfo.restaurantId}`),
-        axios.get(`/api/menu/items?restaurantId=${tableInfo.restaurantId}`)
-      ]);
-      
+      const [restaurantResponse, categoriesResponse, itemsResponse] =
+        await Promise.all([
+          axios.get(`/api/restaurant/${tableInfo.restaurantId}`),
+          axios.get(
+            `/api/menu/categories?restaurantId=${tableInfo.restaurantId}`
+          ),
+          axios.get(`/api/menu/items?restaurantId=${tableInfo.restaurantId}`),
+        ]);
+
       console.log("✅ All menu data received");
       setRestaurantInfo(restaurantResponse.data);
       setCategories(categoriesResponse.data);
       setItems(itemsResponse.data.items || []);
-
     } catch (error) {
       console.error("❌ Error fetching menu data:", error);
       alert("Error loading menu. Please try refreshing the page.");
@@ -155,13 +201,19 @@ const QRMenuPage = () => {
       const customerSession = getCustomerSession();
       if (customerSession.isAuthenticated && customerSession.user?.email) {
         // Logged in customer - get their personal points across all restaurants
-        const response = await axios.get(`/api/feedback/customer/email/${encodeURIComponent(customerSession.user.email)}/orders`);
+        const response = await axios.get(
+          `/api/feedback/customer/email/${encodeURIComponent(
+            customerSession.user.email
+          )}/orders`
+        );
         setCustomerPoints(response.data.totalPoints || 0);
       } else {
         // Guest customer - get points for this table/restaurant session
         if (tableInfo?.restaurantId && tableInfo?.tableNumber) {
           const sessionId = `${tableInfo.restaurantId}-${tableInfo.tableNumber}`;
-          const response = await axios.get(`/api/feedback/customer/${sessionId}/orders`);
+          const response = await axios.get(
+            `/api/feedback/customer/${sessionId}/orders`
+          );
           setCustomerPoints(response.data.totalPoints || 0);
         } else {
           setCustomerPoints(0);
@@ -189,13 +241,16 @@ const QRMenuPage = () => {
       }
 
       // Fetch orders that are still active (not delivered/completed)
-      const response = await axios.get(`http://localhost:5000/api/orders/active`, {
-        params: {
-          restaurantId: tableInfo.restaurantId,
-          tableNumber: tableInfo.tableNumber,
-          customerEmail: customerIdentifier
+      const response = await axios.get(
+        `http://localhost:5000/api/orders/active`,
+        {
+          params: {
+            restaurantId: tableInfo.restaurantId,
+            tableNumber: tableInfo.tableNumber,
+            customerEmail: customerIdentifier,
+          },
         }
-      });
+      );
 
       console.log("Active orders fetched:", response.data);
       setActiveOrders(response.data || []);
@@ -215,7 +270,10 @@ const QRMenuPage = () => {
 
     const newCart = [...cart, cartItem];
     setCart(newCart);
-    localStorage.setItem(`cart_${tableInfo.restaurantId}`, JSON.stringify(newCart));
+    localStorage.setItem(
+      `cart_${tableInfo.restaurantId}`,
+      JSON.stringify(newCart)
+    );
   };
 
   const updateCartItemQuantity = (cartId, newQuantity) => {
@@ -228,13 +286,19 @@ const QRMenuPage = () => {
       item.cartId === cartId ? { ...item, quantity: newQuantity } : item
     );
     setCart(newCart);
-    localStorage.setItem(`cart_${tableInfo.restaurantId}`, JSON.stringify(newCart));
+    localStorage.setItem(
+      `cart_${tableInfo.restaurantId}`,
+      JSON.stringify(newCart)
+    );
   };
 
   const removeFromCart = (cartId) => {
     const newCart = cart.filter((item) => item.cartId !== cartId);
     setCart(newCart);
-    localStorage.setItem(`cart_${tableInfo.restaurantId}`, JSON.stringify(newCart));
+    localStorage.setItem(
+      `cart_${tableInfo.restaurantId}`,
+      JSON.stringify(newCart)
+    );
   };
 
   const getTotalPrice = () => {
@@ -259,20 +323,23 @@ const QRMenuPage = () => {
 
     // Category filter
     if (selectedCategory !== "all") {
-      filtered = filtered.filter((item) => item.categoryId._id === selectedCategory);
+      filtered = filtered.filter(
+        (item) => item.categoryId._id === selectedCategory
+      );
     }
 
     // Search filter
     if (searchQuery) {
-      filtered = filtered.filter((item) =>
-        item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.description.toLowerCase().includes(searchQuery.toLowerCase())
+      filtered = filtered.filter(
+        (item) =>
+          item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          item.description.toLowerCase().includes(searchQuery.toLowerCase())
       );
     }
 
     // Dietary filter
     if (dietaryFilter !== "all") {
-      filtered = filtered.filter((item) => 
+      filtered = filtered.filter((item) =>
         dietaryFilter === "veg" ? item.isVeg : !item.isVeg
       );
     }
@@ -303,7 +370,9 @@ const QRMenuPage = () => {
       <div className="flex items-center justify-center min-h-screen bg-gray-50">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto mb-4"></div>
-          <p className="text-gray-600 text-lg font-medium">Verifying QR code...</p>
+          <p className="text-gray-600 text-lg font-medium">
+            Verifying QR code...
+          </p>
           <p className="text-gray-500 text-sm mt-2">Please wait a moment</p>
         </div>
       </div>
@@ -346,13 +415,15 @@ const QRMenuPage = () => {
             <div className="text-center">
               {authLoading ? (
                 <div>
-                  <p className="text-lg font-medium text-gray-500">Loading...</p>
+                  <p className="text-lg font-medium text-gray-500">
+                    Loading...
+                  </p>
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-400 mx-auto mt-1"></div>
                 </div>
               ) : isCustomerAuthenticated ? (
                 <div>
                   <p className="text-lg font-semibold text-gray-900">
-                    {getCustomerSession().user?.name || 'Customer'}
+                    {getCustomerSession().user?.name || "Customer"}
                   </p>
                   {customerPoints > 0 && (
                     <p className="text-sm text-green-600 font-medium">
@@ -381,8 +452,18 @@ const QRMenuPage = () => {
                 }}
                 className="bg-blue-500 text-white px-3 py-2 rounded-lg font-medium hover:bg-blue-600 flex items-center gap-2"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+                  />
                 </svg>
                 <span className="hidden sm:inline">Orders</span>
               </button>
@@ -390,9 +471,10 @@ const QRMenuPage = () => {
               {/* Authentication Button - NAVIGATION RESISTANT */}
               {(() => {
                 // Check localStorage directly for immediate auth state
-                const hasCustomerToken = localStorage.getItem('customer_token');
-                const isAuthenticatedImmediate = hasCustomerToken && isCustomerAuthenticated;
-                
+                const hasCustomerToken = localStorage.getItem("customer_token");
+                const isAuthenticatedImmediate =
+                  hasCustomerToken && isCustomerAuthenticated;
+
                 try {
                   // Only show loading if we haven't checked auth yet AND no token exists
                   if (authLoading && !authChecked && !hasCustomerToken) {
@@ -405,20 +487,33 @@ const QRMenuPage = () => {
                         <span className="hidden sm:inline">Loading...</span>
                       </button>
                     );
-                  } else if (isAuthenticatedImmediate || (hasCustomerToken && authChecked)) {
+                  } else if (
+                    isAuthenticatedImmediate ||
+                    (hasCustomerToken && authChecked)
+                  ) {
                     return (
                       <button
                         onClick={async () => {
-                          if (confirm('Are you sure you want to logout?')) {
-                            await logout('customer');
+                          if (confirm("Are you sure you want to logout?")) {
+                            await logout("customer");
                             setCustomerPoints(0);
                             fetchCustomerPoints(); // Refresh points for guest session
                           }
                         }}
                         className="bg-red-500 text-white px-3 py-2 rounded-lg font-medium hover:bg-red-600 flex items-center gap-2"
                       >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                        <svg
+                          className="w-4 h-4"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+                          />
                         </svg>
                         <span className="hidden sm:inline">Logout</span>
                       </button>
@@ -429,8 +524,18 @@ const QRMenuPage = () => {
                         onClick={() => setShowCustomerLogin(true)}
                         className="bg-green-600 text-white px-3 py-2 rounded-lg font-medium hover:bg-green-700 flex items-center gap-2"
                       >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
+                        <svg
+                          className="w-4 h-4"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"
+                          />
                         </svg>
                         <span className="hidden sm:inline">Login</span>
                       </button>
@@ -444,8 +549,18 @@ const QRMenuPage = () => {
                       onClick={() => setShowCustomerLogin(true)}
                       className="bg-green-600 text-white px-3 py-2 rounded-lg font-medium hover:bg-green-700 flex items-center gap-2"
                     >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"
+                        />
                       </svg>
                       <span className="hidden sm:inline">Login</span>
                     </button>
@@ -461,8 +576,18 @@ const QRMenuPage = () => {
                 }}
                 className="relative bg-green-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-green-700"
               >
-                <svg className="w-4 h-4 sm:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-2.5 5M7 13l2.5 5m0 0h8" />
+                <svg
+                  className="w-4 h-4 sm:hidden"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-2.5 5M7 13l2.5 5m0 0h8"
+                  />
                 </svg>
                 <span className="hidden sm:inline">Cart</span>
                 {(getTotalItems() > 0 || activeOrders.length > 0) && (
@@ -478,7 +603,7 @@ const QRMenuPage = () => {
 
       {/* Rest of the component - search, filters, categories, items display */}
       {/* This would be similar to the existing MenuPage but without table number input */}
-      
+
       <main className="container mx-auto px-4 py-6">
         {/* Search and Filters */}
         <div className="mb-6">
@@ -583,7 +708,10 @@ const QRMenuPage = () => {
         {/* Menu Items */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {getFilteredItems().map((item) => (
-            <div key={item._id} className="bg-white rounded-xl shadow-lg overflow-hidden">
+            <div
+              key={item._id}
+              className="bg-white rounded-xl shadow-lg overflow-hidden"
+            >
               <div className="relative">
                 <img
                   src={
@@ -635,7 +763,9 @@ const QRMenuPage = () => {
 
         {getFilteredItems().length === 0 && (
           <div className="text-center py-12">
-            <p className="text-gray-500 text-lg">No items found matching your criteria.</p>
+            <p className="text-gray-500 text-lg">
+              No items found matching your criteria.
+            </p>
           </div>
         )}
       </main>
@@ -655,46 +785,75 @@ const QRMenuPage = () => {
                 </button>
               </div>
             </div>
-            
+
             <div className="max-h-96 overflow-y-auto">
               {/* Debug: Show active orders count */}
-              {console.log("🛒 Cart Modal - Active Orders:", activeOrders.length, activeOrders)}
-              
+              {console.log(
+                "🛒 Cart Modal - Active Orders:",
+                activeOrders.length,
+                activeOrders
+              )}
+
               {/* Debug Section - Remove this after testing */}
               <div className="p-2 bg-yellow-50 border-b text-xs">
                 <p>Debug: Active Orders Count: {activeOrders.length}</p>
-                <p>Table: {tableInfo?.tableNumber}, Restaurant: {tableInfo?.restaurantId}</p>
-                <p>Auth: {isCustomerAuthenticated ? 'Logged In' : 'Guest'}</p>
+                <p>
+                  Table: {tableInfo?.tableNumber}, Restaurant:{" "}
+                  {tableInfo?.restaurantId}
+                </p>
+                <p>Auth: {isCustomerAuthenticated ? "Logged In" : "Guest"}</p>
               </div>
-              
+
               {/* Active Orders Section */}
               {activeOrders.length > 0 && (
                 <div className="p-4 bg-blue-50 border-b">
                   <h4 className="font-semibold text-blue-900 mb-3 flex items-center gap-2">
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    <svg
+                      className="w-5 h-5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                      />
                     </svg>
                     Active Orders ({activeOrders.length})
                   </h4>
                   <div className="space-y-3">
                     {activeOrders.map((order) => (
-                      <div key={order._id} className="bg-white rounded-lg p-3 border border-blue-200">
+                      <div
+                        key={order._id}
+                        className="bg-white rounded-lg p-3 border border-blue-200"
+                      >
                         <div className="flex justify-between items-start mb-2">
                           <div>
-                            <p className="font-semibold text-sm">Order #{order._id.slice(-6)}</p>
+                            <p className="font-semibold text-sm">
+                              Order #{order._id.slice(-6)}
+                            </p>
                             <p className="text-xs text-gray-600">
                               {new Date(order.createdAt).toLocaleTimeString()}
                             </p>
                           </div>
                           <div className="text-right">
-                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                              order.status === 'placed' ? 'bg-yellow-100 text-yellow-800' :
-                              order.status === 'confirmed' ? 'bg-blue-100 text-blue-800' :
-                              order.status === 'preparing' ? 'bg-orange-100 text-orange-800' :
-                              order.status === 'ready' ? 'bg-green-100 text-green-800' :
-                              'bg-gray-100 text-gray-800'
-                            }`}>
-                              {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                            <span
+                              className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                order.status === "placed"
+                                  ? "bg-yellow-100 text-yellow-800"
+                                  : order.status === "confirmed"
+                                  ? "bg-blue-100 text-blue-800"
+                                  : order.status === "preparing"
+                                  ? "bg-orange-100 text-orange-800"
+                                  : order.status === "ready"
+                                  ? "bg-green-100 text-green-800"
+                                  : "bg-gray-100 text-gray-800"
+                              }`}
+                            >
+                              {order.status.charAt(0).toUpperCase() +
+                                order.status.slice(1)}
                             </span>
                             <p className="text-sm font-semibold text-gray-900 mt-1">
                               ₹{order.totalAmount.toFixed(2)}
@@ -703,9 +862,16 @@ const QRMenuPage = () => {
                         </div>
                         <div className="space-y-1">
                           {order.items.map((item, index) => (
-                            <div key={index} className="flex justify-between text-sm">
-                              <span className="text-gray-700">{item.name} × {item.quantity}</span>
-                              <span className="text-gray-600">₹{(item.price * item.quantity).toFixed(2)}</span>
+                            <div
+                              key={index}
+                              className="flex justify-between text-sm"
+                            >
+                              <span className="text-gray-700">
+                                {item.name} × {item.quantity}
+                              </span>
+                              <span className="text-gray-600">
+                                ₹{(item.price * item.quantity).toFixed(2)}
+                              </span>
                             </div>
                           ))}
                         </div>
@@ -724,18 +890,33 @@ const QRMenuPage = () => {
               {/* New Cart Items Section */}
               <div className="p-4">
                 <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-2.5 5M7 13l2.5 5m0 0h8" />
+                  <svg
+                    className="w-5 h-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-2.5 5M7 13l2.5 5m0 0h8"
+                    />
                   </svg>
                   New Order ({cart.length} items)
                 </h4>
-                
+
                 {cart.length === 0 ? (
-                  <p className="text-center text-gray-500 py-8">Add items to start a new order</p>
+                  <p className="text-center text-gray-500 py-8">
+                    Add items to start a new order
+                  </p>
                 ) : (
                   <div className="space-y-3">
                     {cart.map((item) => (
-                      <div key={item.cartId} className="flex gap-3 p-3 border rounded-lg">
+                      <div
+                        key={item.cartId}
+                        className="flex gap-3 p-3 border rounded-lg"
+                      >
                         <img
                           src={
                             item.imageUrl
@@ -747,17 +928,31 @@ const QRMenuPage = () => {
                         />
                         <div className="flex-1">
                           <h4 className="font-semibold">{item.name}</h4>
-                          <p className="text-sm text-gray-600">₹{item.price.toFixed(2)}</p>
+                          <p className="text-sm text-gray-600">
+                            ₹{item.price.toFixed(2)}
+                          </p>
                           <div className="flex items-center gap-2 mt-2">
                             <button
-                              onClick={() => updateCartItemQuantity(item.cartId, item.quantity - 1)}
+                              onClick={() =>
+                                updateCartItemQuantity(
+                                  item.cartId,
+                                  item.quantity - 1
+                                )
+                              }
                               className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center hover:bg-gray-300"
                             >
                               -
                             </button>
-                            <span className="font-semibold">{item.quantity}</span>
+                            <span className="font-semibold">
+                              {item.quantity}
+                            </span>
                             <button
-                              onClick={() => updateCartItemQuantity(item.cartId, item.quantity + 1)}
+                              onClick={() =>
+                                updateCartItemQuantity(
+                                  item.cartId,
+                                  item.quantity + 1
+                                )
+                              }
                               className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center hover:bg-gray-300"
                             >
                               +
@@ -781,8 +976,12 @@ const QRMenuPage = () => {
             {cart.length > 0 && (
               <div className="p-4 border-t bg-gray-50">
                 <div className="flex justify-between items-center mb-4">
-                  <span className="text-lg font-bold">New Order Total: ₹{getTotalPrice().toFixed(2)}</span>
-                  <span className="text-sm text-gray-600">({getTotalItems()} items)</span>
+                  <span className="text-lg font-bold">
+                    New Order Total: ₹{getTotalPrice().toFixed(2)}
+                  </span>
+                  <span className="text-sm text-gray-600">
+                    ({getTotalItems()} items)
+                  </span>
                 </div>
                 <button
                   onClick={handleCheckout}
